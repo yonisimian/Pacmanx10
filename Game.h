@@ -142,7 +142,7 @@ namespace pm
 		bool OnUserCreate() override
 		{
 			getLevels();
-			loadLevel(0);
+			loadLevel(1);
 
 			editor = new LevelEditor(*this);
 
@@ -216,6 +216,9 @@ namespace pm
 						chain = 0;
 						chainCountDown = 0;
 					}
+
+					// update powerUps animation
+					std::for_each(currLevel->powerUps.begin(), currLevel->powerUps.end(), [&](std::shared_ptr<PowerUp> pu) {pu->update(fElapsedTime); });
 
 					// update pacman
 					currLevel->player->update(fElapsedTime);

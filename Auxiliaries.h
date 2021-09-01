@@ -156,6 +156,7 @@ namespace pm
 			isOldschool(isOldschool)
 		{}
 		virtual void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const = 0;
+		virtual void update(float fElapsedTime) {}
 		const char getSymbol() const { return kindToChar(kind); }
 	};
 	struct Wall : public GameObject
@@ -187,10 +188,23 @@ namespace pm
 	};
 	struct PowerUp : public GameObject
 	{
-		PowerUp(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true) : GameObject(game, Kind::POWER_UP, vInitPos, isOldschool) {}
+		static const int speed = 400;
+		float blue;
+		bool dirUp;
+		PowerUp(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true) :
+			GameObject(game, Kind::POWER_UP, vInitPos, isOldschool),
+			blue(255),
+			dirUp(false)
+		{}
+		void update(float fElapsedTime) override
+		{
+			if (blue >= 255) dirUp = false;
+			if (blue <= 0)   dirUp = true;
+			blue += (dirUp ? 1 : -1) * fElapsedTime * speed;
+		}
 		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
-			game.FillCircle(vInitPos + offset + olc::vi2d(iTileSize / 2, iTileSize / 2), iTileSize / 4);
+			game.FillCircle(vInitPos + offset + olc::vi2d(iTileSize / 2, iTileSize / 2), iTileSize / 4, olc::Pixel(212, 212, int(blue)));
 		}
 	};
 
@@ -643,6 +657,7 @@ namespace pm
 		BOARD_MAP board;
 		bool isOldschool;
 		std::vector<std::shared_ptr<Ghost>> ghosts;
+		std::vector<std::shared_ptr<PowerUp>> powerUps;
 		std::shared_ptr<Pacman> player;
 		int width;
 		int height;
@@ -726,7 +741,7 @@ namespace pm
 			case Kind::DOT:      board.emplace(MAKE_TILE(game, Dot));  ++iDots;   break;
 			case Kind::WALL:     board.emplace(MAKE_TILE(game, Wall));    break;
 			case Kind::WALL_B:   board.emplace(std::make_pair(pos, std::shared_ptr<GameObject>(new Wall(game, tileToScreen(pos), isOldschool, olc::DARK_YELLOW))));    break;
-			case Kind::POWER_UP: board.emplace(MAKE_TILE(game, PowerUp)); break;
+			case Kind::POWER_UP: {std::shared_ptr<PowerUp> pu(new PowerUp(game, tileToScreen(pos), isOldschool)); board.emplace(std::make_pair(pos, pu)); powerUps.push_back(pu);  break; }
 			}
 
 			if (ghost != nullptr)

@@ -63,7 +63,7 @@ namespace pm
 			time(0.0f),
 			timeCountDown(COUNT_DOWN_TIME),
 			chain(0),
-			chainCountDown(CHAIN_DOWN_TIME),
+			chainCountDown(0),
 			lives(DEFAULT_LIFE),
 			currState(GameState::GAME_SET),
 			nextState(GameState::GAME_SET)
@@ -73,11 +73,12 @@ namespace pm
 			sAppName = "Pacmanx10";
 		}
 
+#pragma region Levels Management
 		// load all the levels from "data.txt" to 
 		void getLevels()
 		{
 			std::ifstream inputDataFile{ PATH_DATA };
-			
+
 			while (inputDataFile.good())
 			{
 				std::string result;
@@ -105,7 +106,7 @@ namespace pm
 				//if (count[static_cast<int>(Kind::PLAYER)] != 1 || count[static_cast<int>(Kind::DOT)] < 1 || (count[static_cast<int>(Kind::GHOST_B)] +
 				//	count[static_cast<int>(Kind::GHOST_R)] + count[static_cast<int>(Kind::GHOST_G)] + count[static_cast<int>(Kind::GHOST_Y)] < 1))
 				//	continue;
-				
+
 				levelDatas.push_back({ result, lastLineSize, i });
 			}
 
@@ -117,7 +118,7 @@ namespace pm
 		{
 			if (++iCurrLevel == levelDatas.size())
 				iCurrLevel = 0;
-			currLevel.reset(new Level(*this, levelDatas[iCurrLevel], false));
+			resetCurrLevel();
 		}
 
 		// load currLevel to be the previous level
@@ -125,7 +126,7 @@ namespace pm
 		{
 			if (--iCurrLevel < 0)
 				iCurrLevel = levelDatas.size() - 1;
-			currLevel.reset(new Level(*this, levelDatas[iCurrLevel], false));
+			resetCurrLevel();
 		}
 
 		// load currLevel to be the next level
@@ -133,16 +134,22 @@ namespace pm
 		{
 			if (level < 0 || level >= levelDatas.size())
 				return false;
-			currLevel.reset(new Level(*this, levelDatas[level], false));
 			iCurrLevel = level;
+			resetCurrLevel();
 			return true;
 		}
 
+		void resetCurrLevel()
+		{
+			currLevel.reset(new Level(*this, levelDatas[iCurrLevel], false));
+		}
+
+#pragma endregion
 
 		bool OnUserCreate() override
 		{
 			getLevels();
-			loadLevel(1);
+			loadLevel(3);
 
 			editor = new LevelEditor(*this);
 
@@ -236,7 +243,7 @@ namespace pm
 							Dot* d = dynamic_cast<Dot*>(it->second.get());
 							if (currLevel->isOldschool)
 								score += d->value;
-							else if (chainCountDown > 0.0f)
+							else
 							{
 								chain <<= 1;
 								chain += d->value;
@@ -335,7 +342,7 @@ namespace pm
 		}
 		void drawGame()
 		{
-			drawDebugGrid(*this, currLevel->width, currLevel->height);
+			//drawDebugGrid(*this, currLevel->width, currLevel->height);
 
 			currLevel->draw();
 
@@ -348,7 +355,7 @@ namespace pm
 			if (!currLevel->isOldschool)
 			{
 				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<16>(chain).to_string());
-				DrawString({ 0, y + 41 }, "Chain-Time: " + std::to_string(chainCountDown));
+				DrawString({ 0, y + 41 }, "Chain-Time: " + std::to_string(chainCountDown).substr(0, 4));
 			}
 
 			// debug tile

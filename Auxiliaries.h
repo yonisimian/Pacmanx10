@@ -11,7 +11,8 @@
 namespace pm
 {
 	const int iTileSize = 8;
-	const int iPacmanSpeed = 20;
+	const int iPacmanSpeed = 28;
+	const int iGhostSpeed = 20;
 	const int iDotValue = 10;
 
 	const int DEFAULT_LEVEL_WIDTH = 16;
@@ -161,14 +162,22 @@ namespace pm
 	};
 	struct Wall : public GameObject
 	{
+		uint8_t walls; // 0b1111, one bit for each wall (up / down / left / right)
 		olc::Pixel color;
 		Wall(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, const olc::Pixel color = olc::WHITE) :
 			GameObject(game, Kind::WALL, vInitPos, isOldschool),
-			color(color)
+			color(color),
+			walls(0b1111)
 		{};
 		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
-			game.DrawRect(vInitPos + offset, { iTileSize , iTileSize }, color);
+			//game.DrawRect(vInitPos + offset, { iTileSize , iTileSize }, color);
+			if (walls & 0b1000) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(iTileSize, 0        ), color);
+			if (walls & 0b0100) game.DrawLine(vInitPos + offset + olc::vi2d(0, iTileSize), vInitPos + offset + olc::vi2d(iTileSize, iTileSize), color);
+			if (walls & 0b0010) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(0,         iTileSize), color);
+			if (walls & 0b0001) game.DrawLine(vInitPos + offset + olc::vi2d(iTileSize, 0), vInitPos + offset + olc::vi2d(iTileSize, iTileSize), color);
+
+			// game.FillRect(vInitPos + offset + olc::vi2d(1, 1), olc::vi2d(iTileSize - 1, iTileSize - 1), olc::Pixel(255, 255, 255, 50));
 		}
 	};
 	struct Dot : public GameObject
@@ -287,6 +296,7 @@ namespace pm
 		}
 	};
 
+#pragma region Ghosts 
 	class Ghost : public MoveableObject
 	{
 		static const int WEAK_TIME = 6;
@@ -312,7 +322,7 @@ namespace pm
 		int* map;
 	public:
 		Ghost(olc::PixelGameEngine& game, const olc::vi2d& vPos, olc::Pixel color, Kind kind, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr, const Dir initialDir = Dir::RIGHT) :
-			MoveableObject(game, kind, vPos, isOldschool, iPacmanSpeed, levelWidth, levelHeight, initialDir),
+			MoveableObject(game, kind, vPos, isOldschool, iGhostSpeed, levelWidth, levelHeight, initialDir),
 			color(color),
 			currState(GhostState::STRONG),
 			fWeakTime(WEAK_TIME),
@@ -621,11 +631,13 @@ namespace pm
 		}
 	};
 
+#pragma endregion
+
 	class Pacman : public MoveableObject
 	{
 	public:
 		Pacman(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, const int iLevelWidth, const int iLevelHeight, bool isOldschool = true) :
-			MoveableObject(game, Kind::PLAYER, vInitPos, isOldschool, int(iPacmanSpeed * 1.25), iLevelWidth, iLevelHeight)
+			MoveableObject(game, Kind::PLAYER, vInitPos, isOldschool, int(iPacmanSpeed), iLevelWidth, iLevelHeight)
 		{}
 		void getInput(olc::PixelGameEngine& game)
 		{
@@ -683,8 +695,6 @@ namespace pm
 			width = data.width;
 			height = data.height;
 
-
-
 			for (int x = 0; x < width; x++)
 				for (int y = 0; y < height; y++)
 					addAt({ x, y }, charToKind(data.data[y * width + x]));
@@ -692,18 +702,22 @@ namespace pm
 			for (auto ghost : ghosts)
 				ghost->updateTarget(player->getPosPtr());
 
+			// deternime walls (up / down / left / right)
+			for (BOARD_MAP::iterator it = board.begin(); it != board.end(); ++it)
+			{
+				if (Wall* wall = dynamic_cast<Wall*>(it->second.get()))
+				{
+					int x = it->first.x;
+					int y = it->first.y;
+					auto cond = [&](auto i) { return i >= 0 && i < width* height&& data.data[i] == SYMBOL_WALL; };
 
-			// debug
-			//std::cout << "printing board" << std::endl;
-			//for (int x = 0; x < width; x++)
-			//{
-			//	for (int y = 0; y < height; y++)
-			//	{
-			//		BOARD_MAP::iterator it = board.find({ x, y });
-			//		std::cout << (it == board.end() ? " " : std::string(1, kindToChar(it->second->kind))) << " ";
-			//	}
-			//	std::cout << std::endl;
-			//}
+					int location = (y - 1) * width + x;
+					if (y != 0          && cond(location))  wall->walls &= 0b0111;	location = (y + 1) * width + x;
+					if (y != height - 1 && cond(location))	wall->walls &= 0b1011;	location = y * width + (x - 1);
+					if (x != 0          && cond(location))  wall->walls &= 0b1101;	location = y * width + (x + 1);
+					if (x != width - 1  && cond(location))  wall->walls &= 0b1110;
+				}
+			}
 		}
 		void incrementWidth(const int value)
 		{

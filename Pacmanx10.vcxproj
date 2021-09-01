@@ -148,6 +148,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt" />
+    <Text Include="TODO" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Auxiliaries.h" />

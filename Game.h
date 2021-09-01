@@ -7,6 +7,7 @@
 #include "LevelEditor.h"
 
 #include <fstream>
+#include <bitset>
 
 #define PATH_DATA "./data.txt"
 
@@ -17,6 +18,7 @@ namespace pm
 	class Game : public olc::PixelGameEngine
 	{
 		static const float constexpr COUNT_DOWN_TIME = 3.0f;
+		static const float constexpr CHAIN_DOWN_TIME = 1.0f;
 		static const int DEFAULT_LIFE = 3;
 
 		enum class GameState {
@@ -41,6 +43,10 @@ namespace pm
 		float timeCountDown; // for GAME_SET
 		int lives;
 
+		// futuristic gameplay
+		int chain;
+		float chainCountDown;
+
 		GameState currState;
 		GameState nextState;
 
@@ -56,13 +62,15 @@ namespace pm
 			score(0),
 			time(0.0f),
 			timeCountDown(COUNT_DOWN_TIME),
+			chain(0),
+			chainCountDown(CHAIN_DOWN_TIME),
 			lives(DEFAULT_LIFE),
 			currState(GameState::GAME_SET),
 			nextState(GameState::GAME_SET)
 			//aDemoSample("./Assets/Sound/demo.wav"),
 			//aTmpSample(olc::SOUND::LoadAudioSample("./Assets/Sound/demo.wav"))
 		{
-			sAppName = "Pacman";
+			sAppName = "Pacmanx10";
 		}
 
 		// load all the levels from "data.txt" to 
@@ -109,7 +117,7 @@ namespace pm
 		{
 			if (++iCurrLevel == levelDatas.size())
 				iCurrLevel = 0;
-			currLevel.reset(new Level(*this, levelDatas[iCurrLevel]));
+			currLevel.reset(new Level(*this, levelDatas[iCurrLevel], false));
 		}
 
 		// load currLevel to be the previous level
@@ -117,7 +125,7 @@ namespace pm
 		{
 			if (--iCurrLevel < 0)
 				iCurrLevel = levelDatas.size() - 1;
-			currLevel.reset(new Level(*this, levelDatas[iCurrLevel]));
+			currLevel.reset(new Level(*this, levelDatas[iCurrLevel], false));
 		}
 
 		// load currLevel to be the next level
@@ -125,7 +133,7 @@ namespace pm
 		{
 			if (level < 0 || level >= levelDatas.size())
 				return false;
-			currLevel.reset(new Level(*this, levelDatas[level]));
+			currLevel.reset(new Level(*this, levelDatas[level], false));
 			iCurrLevel = level;
 			return true;
 		}
@@ -200,6 +208,14 @@ namespace pm
 
 					// ============== UPDATE ==============
 					time += fElapsedTime;
+					chainCountDown -= fElapsedTime;
+					
+					if (chainCountDown < 0.0f)
+					{
+						score += chain;
+						chain = 0;
+						chainCountDown = 0;
+					}
 
 					// update pacman
 					currLevel->player->update(fElapsedTime);
@@ -212,12 +228,23 @@ namespace pm
 							currLevel->player->collideWithWall();
 							break;
 						case Kind::DOT:
+						{
 							//olc::SOUND::PlaySample(aTmpSample);
-							score += 10;
+							Dot* d = dynamic_cast<Dot*>(it->second.get());
+							if (currLevel->isOldschool)
+								score += d->value;
+							else if (chainCountDown > 0.0f)
+							{
+								chain <<= 1;
+								chain += d->value;
+								chain &= 0b1111111111111111;
+							}
+							chainCountDown = CHAIN_DOWN_TIME;
 							currLevel->board.erase(it);
 							if (--currLevel->iDots == 0) // end level!
 								nextState = GameState::GAME_WIN;
 							break;
+						}
 						case Kind::POWER_UP:
 							std::for_each(currLevel->ghosts.begin(), currLevel->ghosts.end(), [&](auto ghost) {ghost->makeWeak(); });
 							score += 50;
@@ -315,6 +342,11 @@ namespace pm
 			DrawString({ 0, y + 1 }, "Time:  " + std::to_string((int)time));
 			DrawString({ 0, y + 11 }, "Score: " + std::to_string(score));
 			DrawString({ 0, y + 21 }, "Lives: " + std::to_string(lives));
+			if (!currLevel->isOldschool)
+			{
+				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<16>(chain).to_string());
+				DrawString({ 0, y + 41 }, "Chain-Time: " + std::to_string(chainCountDown));
+			}
 
 			// debug tile
 			// DrawRect(player->getPos(), { iTileSize, iTileSize }, olc::YELLOW);

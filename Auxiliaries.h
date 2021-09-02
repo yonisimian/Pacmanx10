@@ -185,7 +185,7 @@ namespace pm
 		int value;
 		Dot(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true) :
 			GameObject(game, Kind::DOT, vInitPos, isOldschool),
-			value(isOldschool ? iDotValue : randomBool())
+			value(isOldschool ? iDotValue : randomBool(0.6f))
 		{}
 		virtual void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
@@ -810,22 +810,42 @@ namespace pm
 		}
 	};
 
+#pragma region UI
 
-
-
-
-	struct Button
+	struct UI
 	{
 		olc::PixelGameEngine& game;
 		olc::vf2d vPos;
+		UI(olc::PixelGameEngine& game, olc::vf2d pos) : game(game), vPos(pos) {}
+		virtual void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const = 0;
+	};
+
+	struct Title : public UI
+	{
+		std::string text;
+		olc::Pixel color;
+		Title(olc::PixelGameEngine& game, olc::vf2d pos, std::string text, olc::Pixel color = olc::WHITE) :
+			UI(game, pos),
+			text(text),
+			color(color)
+		{}
+		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
+		{
+			game.DrawString(vPos + offset + olc::vi2d(2, 1),   text, olc::CYAN,    2);
+			game.DrawString(vPos + offset + olc::vi2d(-2, -1), text, olc::MAGENTA, 2);
+			game.DrawString(vPos + offset,					   text, color,        2);
+		}
+	};
+
+	struct Button : public UI
+	{
 		olc::vf2d vSize;
 		std::string text;
 		int* iText;
 		std::function<void()> fncOnClick;
 		bool isClickable;
 		Button(olc::PixelGameEngine& game, olc::vf2d pos, std::string text, std::function<void()> fncOnClick = [] {}, bool isClickable = true) :
-			game(game),
-			vPos(pos),
+			UI(game, pos),
 			vSize(tileToScreen(text.length(), 1)),
 			text(text),
 			iText(nullptr),
@@ -833,8 +853,7 @@ namespace pm
 			isClickable(isClickable)
 		{}
 		Button(olc::PixelGameEngine& game, olc::vf2d pos, int* text, std::function<void()> fncOnClick = [] {}, bool isClickable = true) :
-			game(game),
-			vPos(pos),
+			UI(game, pos),
 			vSize(tileToScreen(std::to_string(*text).length(), 1)),
 			text(std::to_string(*text)),
 			iText(text),
@@ -847,7 +866,7 @@ namespace pm
 			if (isClicked())
 				fncOnClick();
 		}
-		void draw()
+		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
 			game.FillRect(vPos, vSize, olc::GREY);
 			game.DrawRect(vPos, vSize, olc::Pixel(200, 100, 0));
@@ -856,6 +875,9 @@ namespace pm
 				game.FillRectDecal(vPos, vSize, olc::Pixel(255, 170, 0, 80));
 		}
 	};
+
+#pragma endregion
+
 }
 
 #endif

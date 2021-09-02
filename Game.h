@@ -1,4 +1,4 @@
-#ifndef GAME_H
+﻿#ifndef GAME_H
 #define GAME_H
 
 #include "olcPixelGameEngine.h"
@@ -23,7 +23,6 @@ namespace pm
 
 		enum class GameState {
 			MM_MAIN,
-			MM_OPTIONS,
 			MM_ABOUT,
 			MM_HIGHSCORES,
 			GAME_SET,
@@ -32,6 +31,16 @@ namespace pm
 			GAME_WIN,
 			LEVEL_EDITOR,
 		};
+
+		// =============== menus' stuff
+		Title title_game;
+		std::vector<Button*> mm_main_buttons;
+		std::vector<Button*> mm_abut_buttons;
+		std::vector<Button*> mm_high_buttons;
+		bool quit;
+
+
+		// =============== game's stuff
 
 		std::vector<LevelData> levelDatas;
 
@@ -58,6 +67,8 @@ namespace pm
 		//int aTmpSample = 0;
 	public:
 		Game() :
+			title_game (*this, tileToScreen(6, 1), "Pacmanx10"),
+			quit(false),
 			iCurrLevel(0),
 			score(0),
 			time(0.0f),
@@ -65,12 +76,20 @@ namespace pm
 			chain(0),
 			chainCountDown(0),
 			lives(DEFAULT_LIFE),
-			currState(GameState::GAME_SET),
-			nextState(GameState::GAME_SET)
+			currState(GameState::MM_MAIN),
+			nextState(GameState::MM_MAIN)
 			//aDemoSample("./Assets/Sound/demo.wav"),
 			//aTmpSample(olc::SOUND::LoadAudioSample("./Assets/Sound/demo.wav"))
 		{
 			sAppName = "Pacmanx10";
+
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play",       [this] { nextState = GameState::GAME_SET; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(12, 7) + olc::vi2d(iTileSize / 2, 0), "About", [this] { nextState = GameState::MM_ABOUT; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 9), "Highscores", [this] { nextState = GameState::MM_HIGHSCORES; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Quit",      [this] { quit = true; }));
+
+			mm_abut_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Back", [this] { nextState = GameState::MM_MAIN; }));
+			mm_high_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Back", [this] { nextState = GameState::MM_MAIN; }));
 		}
 
 #pragma region Levels Management
@@ -149,7 +168,7 @@ namespace pm
 		bool OnUserCreate() override
 		{
 			getLevels();
-			loadLevel(3);
+			loadLevel(0);
 
 			editor = new LevelEditor(*this);
 
@@ -164,18 +183,26 @@ namespace pm
 			{
 				case GameState::MM_MAIN:
 				{
-					break;
-				}
-				case GameState::MM_OPTIONS:
-				{
+					std::for_each(mm_main_buttons.begin(), mm_main_buttons.end(), [](auto b) { b->update(); });
+
+					title_game.draw();
+					std::for_each(mm_main_buttons.begin(), mm_main_buttons.end(), [](auto b) { b->draw(); });
 					break;
 				}
 				case GameState::MM_ABOUT:
 				{
+					std::for_each(mm_abut_buttons.begin(), mm_abut_buttons.end(), [](auto b) { b->update(); });
+
+					title_game.draw();
+					std::for_each(mm_abut_buttons.begin(), mm_abut_buttons.end(), [](auto b) { b->draw(); });
 					break;
 				}
 				case GameState::MM_HIGHSCORES:
 				{
+					std::for_each(mm_high_buttons.begin(), mm_high_buttons.end(), [](auto b) { b->update(); });
+
+					title_game.draw();
+					std::for_each(mm_high_buttons.begin(), mm_high_buttons.end(), [](auto b) { b->draw(); });
 					break;
 				}
 				case GameState::GAME_SET:
@@ -331,7 +358,7 @@ namespace pm
 
 			currState = nextState;
 
-			return true;
+			return !quit;
 		}
 
 	private:

@@ -14,6 +14,7 @@ namespace pm
 	const int iPacmanSpeed = 28;
 	const int iGhostSpeed = 20;
 	const int iDotValue = 10;
+	const int iChainLength = 16;
 
 	const int DEFAULT_LEVEL_WIDTH = 16;
 	const int DEFAULT_LEVEL_HEIGHT = 16;
@@ -834,6 +835,42 @@ namespace pm
 			game.DrawString(vPos + offset + olc::vi2d(2, 1),   text, olc::CYAN,    2);
 			game.DrawString(vPos + offset + olc::vi2d(-2, -1), text, olc::MAGENTA, 2);
 			game.DrawString(vPos + offset,					   text, color,        2);
+		}
+	};
+
+	struct TextBox : public UI
+	{
+		std::string text;
+		int longestLine;
+		int numOfLines;
+		TextBox(olc::PixelGameEngine& game, olc::vf2d pos, std::string text) :
+			UI(game, pos),
+			text(text),
+			longestLine(0),
+			numOfLines(1)
+		{
+			int currLineLength = 0;
+			for (char c : text)
+			{
+				if (c == '\n')
+				{
+					numOfLines++;
+					if (currLineLength > longestLine)
+						longestLine = currLineLength;
+					currLineLength = 0;
+				}
+				else
+					currLineLength++;
+			}
+			if (currLineLength > longestLine)
+				longestLine = currLineLength;
+		}
+		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
+		{
+			olc::vi2d rectSize(tileToScreen(longestLine + 1, numOfLines + 1));
+			game.DrawRect(vPos + offset - olc::vi2d(4, 4), rectSize, olc::Pixel(0, 222, 222));
+			game.FillRectDecal(vPos + offset - olc::vi2d(4, 4), rectSize, olc::Pixel(200, 222, 200, 50));
+			game.DrawString(vPos + offset, text, olc::WHITE, 1);
 		}
 	};
 

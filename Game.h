@@ -1,6 +1,9 @@
 ﻿#ifndef GAME_H
 #define GAME_H
 
+#define OLC_PGE_APPLICATION
+#define OLC_PGEX_SOUND
+
 #include "olcPixelGameEngine.h"
 #include "olcPGEX_Sound.h"
 #include "Auxiliaries.h"
@@ -10,6 +13,7 @@
 #include <bitset>
 
 #define PATH_DATA "./data.txt"
+#define PATH_SOUND "./Assets/Sound/"
 
 namespace fs = std::experimental::filesystem;
 
@@ -37,7 +41,10 @@ namespace pm
 		std::vector<Button*> mm_main_buttons;
 		std::vector<Button*> mm_abut_buttons;
 		std::vector<Button*> mm_high_buttons;
-		bool quit;
+
+		std::vector<TextBox*> mm_abut_texts;
+		std::vector<TextBox*> mm_high_texts;
+		bool bQuit;
 
 
 		// =============== game's stuff
@@ -63,12 +70,12 @@ namespace pm
 
 
 		// sound management
-		//olc::SOUND::AudioSample aDemoSample;
-		//int aTmpSample = 0;
+		int aBG;
+		int aEffect1;
 	public:
 		Game() :
 			title_game (*this, tileToScreen(6, 1), "Pacmanx10"),
-			quit(false),
+			bQuit(false),
 			iCurrLevel(0),
 			score(0),
 			time(0.0f),
@@ -77,19 +84,23 @@ namespace pm
 			chainCountDown(0),
 			lives(DEFAULT_LIFE),
 			currState(GameState::MM_MAIN),
-			nextState(GameState::MM_MAIN)
-			//aDemoSample("./Assets/Sound/demo.wav"),
-			//aTmpSample(olc::SOUND::LoadAudioSample("./Assets/Sound/demo.wav"))
+			nextState(GameState::MM_MAIN),
+			aBG(olc::SOUND::LoadAudioSample(PATH_SOUND "untitled.wav")),
+			aEffect1(olc::SOUND::LoadAudioSample(PATH_SOUND "demo.wav"))
 		{
 			sAppName = "Pacmanx10";
 
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play",       [this] { nextState = GameState::GAME_SET; }));
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(12, 7) + olc::vi2d(iTileSize / 2, 0), "About", [this] { nextState = GameState::MM_ABOUT; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 9), "Highscores", [this] { nextState = GameState::MM_HIGHSCORES; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Quit",      [this] { quit = true; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 9), "Highscores", [this] { nextState = GameState::MM_HIGHSCORES; olc::SOUND::PlaySample(aEffect1); }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Quit",      [this] { bQuit = true; }));
 
-			mm_abut_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Back", [this] { nextState = GameState::MM_MAIN; }));
-			mm_high_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Back", [this] { nextState = GameState::MM_MAIN; }));
+			mm_abut_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { nextState = GameState::MM_MAIN; }));
+			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 5), "Explanation stuff,\n\nI ain't good at it\n\n        UWU"));
+			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 12), "We love you David!"));
+
+			mm_high_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { nextState = GameState::MM_MAIN; }));
+			mm_high_texts.push_back(new TextBox(*this, tileToScreen(7, 5), "\n\n\n  Coming Soon!  \n\n\n"));
 		}
 
 #pragma region Levels Management
@@ -167,10 +178,22 @@ namespace pm
 
 		bool OnUserCreate() override
 		{
+			bool bResult = true;
+
 			getLevels();
-			loadLevel(0);
+			bResult &= loadLevel(0);
 
 			editor = new LevelEditor(*this);
+
+			olc::SOUND::InitialiseAudio();
+			olc::SOUND::PlaySample(aBG, true);
+
+			return bResult;
+		}
+
+		bool OnUserDestroy() override
+		{
+			olc::SOUND::DestroyAudio();
 
 			return true;
 		}
@@ -194,6 +217,7 @@ namespace pm
 					std::for_each(mm_abut_buttons.begin(), mm_abut_buttons.end(), [](auto b) { b->update(); });
 
 					title_game.draw();
+					std::for_each(mm_abut_texts.begin(),   mm_abut_texts.end(),   [](auto t) { t->draw(); });
 					std::for_each(mm_abut_buttons.begin(), mm_abut_buttons.end(), [](auto b) { b->draw(); });
 					break;
 				}
@@ -202,6 +226,7 @@ namespace pm
 					std::for_each(mm_high_buttons.begin(), mm_high_buttons.end(), [](auto b) { b->update(); });
 
 					title_game.draw();
+					std::for_each(mm_high_texts.begin(), mm_high_texts.end(),     [](auto t) { t->draw(); });
 					std::for_each(mm_high_buttons.begin(), mm_high_buttons.end(), [](auto b) { b->draw(); });
 					break;
 				}
@@ -274,7 +299,7 @@ namespace pm
 							{
 								chain <<= 1;
 								chain += d->value;
-								chain &= 0b1111111111111111;
+								chain &= (int(pow(2, iChainLength)) - 1);
 							}
 							chainCountDown = CHAIN_DOWN_TIME;
 							currLevel->board.erase(it);
@@ -309,7 +334,7 @@ namespace pm
 									break;
 								case Ghost::GhostState::WEAK:
 									ghost->makeEaten();
-									score += 200;
+									score += currLevel->isOldschool ? 200 : int(pow(2, iChainLength - 1));
 									break;
 									//case Ghost::GhostState::EATEN: break;
 								}
@@ -358,7 +383,7 @@ namespace pm
 
 			currState = nextState;
 
-			return !quit;
+			return !bQuit;
 		}
 
 	private:
@@ -381,7 +406,7 @@ namespace pm
 			DrawString({ 0, y + 21 }, "Lives: " + std::to_string(lives));
 			if (!currLevel->isOldschool)
 			{
-				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<16>(chain).to_string());
+				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<iChainLength>(chain).to_string());
 				DrawString({ 0, y + 41 }, "Chain-Time: " + std::to_string(chainCountDown).substr(0, 4));
 			}
 

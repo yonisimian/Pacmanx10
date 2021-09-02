@@ -145,6 +145,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Media Include="Assets\Sound\demo.wav" />
+    <Media Include="Assets\Sound\untitled.wav" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt" />

@@ -24,6 +24,9 @@
     <Media Include="Assets\Sound\demo.wav">
       <Filter>Resource Files\Sound</Filter>
     </Media>
+    <Media Include="Assets\Sound\untitled.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt">

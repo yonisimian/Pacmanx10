@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# WIP files (fl for sound, psd for logo etc.)
+WIP files/

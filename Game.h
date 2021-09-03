@@ -71,7 +71,14 @@ namespace pm
 
 		// sound management
 		int aBG;
-		int aEffect1;
+		int aGameover;
+		int aLevel;
+		std::vector<int> aPac;
+		std::vector<int> aClick;
+		std::vector<int> aFart;
+		std::vector<int> aWah;
+		std::vector<int> aYum;
+		std::vector<int> aBlbl;
 	public:
 		Game() :
 			title_game (*this, tileToScreen(6, 1), "Pacmanx10"),
@@ -85,22 +92,11 @@ namespace pm
 			lives(DEFAULT_LIFE),
 			currState(GameState::MM_MAIN),
 			nextState(GameState::MM_MAIN),
-			aBG(olc::SOUND::LoadAudioSample(PATH_SOUND "untitled.wav")),
-			aEffect1(olc::SOUND::LoadAudioSample(PATH_SOUND "demo.wav"))
+			aBG(olc::SOUND::LoadAudioSample(PATH_SOUND "main_menu.wav")),
+			aGameover(olc::SOUND::LoadAudioSample(PATH_SOUND "game_over.wav")),
+			aLevel(olc::SOUND::LoadAudioSample(PATH_SOUND "level_music.wav"))
 		{
 			sAppName = "Pacmanx10";
-
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play",       [this] { nextState = GameState::GAME_SET; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(12, 7) + olc::vi2d(iTileSize / 2, 0), "About", [this] { nextState = GameState::MM_ABOUT; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 9), "Highscores", [this] { nextState = GameState::MM_HIGHSCORES; olc::SOUND::PlaySample(aEffect1); }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Quit",      [this] { bQuit = true; }));
-
-			mm_abut_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { nextState = GameState::MM_MAIN; }));
-			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 5), "Explanation stuff,\n\nI ain't good at it\n\n        UWU"));
-			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 12), "We love you David!"));
-
-			mm_high_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { nextState = GameState::MM_MAIN; }));
-			mm_high_texts.push_back(new TextBox(*this, tileToScreen(7, 5), "\n\n\n  Coming Soon!  \n\n\n"));
 		}
 
 #pragma region Levels Management
@@ -178,17 +174,37 @@ namespace pm
 
 		bool OnUserCreate() override
 		{
-			bool bResult = true;
+			// UI
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play", [this] { olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(12, 7) + olc::vi2d(iTileSize / 2, 0), "About", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_ABOUT; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 9), "Highscores", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_HIGHSCORES; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Quit", [this] { playEffect(SoundEffect::FART); bQuit = true; }));
 
+			mm_abut_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
+			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 5), "Explanation stuff,\n\nI ain't good at it\n\n        UWU"));
+			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 12), "We love you David!"));
+
+			mm_high_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
+			mm_high_texts.push_back(new TextBox(*this, tileToScreen(7, 5), "\n\n\n  Coming Soon!  \n\n\n"));
+
+			// Audio
+			for (int i = 1; i <= 4; ++i) aPac  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "pac_0"    + std::to_string(i) + ".wav"));
+			for (int i = 1; i <= 3; ++i) aYum  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "yummy_0"  + std::to_string(i) + ".wav"));
+			for (int i = 1; i <= 3; ++i) aWah  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "wah_0"    + std::to_string(i) + ".wav"));
+			for (int i = 1; i <= 2; ++i) aFart .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "fart_0"   + std::to_string(i) + ".wav"));
+			for (int i = 1; i <= 3; ++i) aBlbl .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "blblbl_0" + std::to_string(i) + ".wav"));
+			for (int i = 1; i <= 2; ++i) aClick.push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "click_0"  + std::to_string(i) + ".wav"));
+
+			// Game
 			getLevels();
-			bResult &= loadLevel(0);
+			if (!loadLevel(3)) return false;
+
+			if (!olc::SOUND::InitialiseAudio()) return false;
+			olc::SOUND::PlaySample(aBG, true);
 
 			editor = new LevelEditor(*this);
 
-			olc::SOUND::InitialiseAudio();
-			olc::SOUND::PlaySample(aBG, true);
-
-			return bResult;
+			return true;
 		}
 
 		bool OnUserDestroy() override
@@ -256,6 +272,8 @@ namespace pm
 					currLevel->player->getInput(*this);
 					if (GetKey(olc::P).bPressed)
 					{
+						olc::SOUND::StopSample(aLevel);
+						olc::SOUND::PlaySample(aBG);
 						nextState = GameState::GAME_PAUSE;
 						break;
 					}
@@ -291,7 +309,7 @@ namespace pm
 							break;
 						case Kind::DOT:
 						{
-							//olc::SOUND::PlaySample(aTmpSample);
+							playEffect(SoundEffect::PAC);
 							Dot* d = dynamic_cast<Dot*>(it->second.get());
 							if (currLevel->isOldschool)
 								score += d->value;
@@ -304,10 +322,14 @@ namespace pm
 							chainCountDown = CHAIN_DOWN_TIME;
 							currLevel->board.erase(it);
 							if (--currLevel->iDots == 0) // end level!
+							{
+								playEffect(SoundEffect::VICTORY);
 								nextState = GameState::GAME_WIN;
+							}
 							break;
 						}
 						case Kind::POWER_UP:
+							playEffect(SoundEffect::YUMMY);
 							std::for_each(currLevel->ghosts.begin(), currLevel->ghosts.end(), [&](auto ghost) {ghost->makeWeak(); });
 							score += 50;
 							currLevel->board.erase(it);
@@ -328,7 +350,8 @@ namespace pm
 								switch (ghost->getState())
 								{
 								case Ghost::GhostState::STRONG:
-									resetGame();
+									playEffect(SoundEffect::GHOST);
+									resetLevel();
 									lives--;
 									nextState = GameState::GAME_SET;
 									break;
@@ -355,7 +378,11 @@ namespace pm
 				case GameState::GAME_PAUSE:
 				{
 					if (GetKey(olc::ESCAPE).bPressed)
+					{
+						olc::SOUND::StopSample(aBG);
+						olc::SOUND::PlaySample(aLevel);
 						nextState = GameState::GAME_PLAY;
+					}
 
 					drawGame();
 
@@ -387,7 +414,7 @@ namespace pm
 		}
 
 	private:
-		void resetGame()
+		void resetLevel()
 		{
 			currLevel->player->resetPos();
 			std::for_each(currLevel->ghosts.begin(), currLevel->ghosts.end(), [&](auto ghost) {ghost->resetPos(); });
@@ -412,6 +439,21 @@ namespace pm
 
 			// debug tile
 			// DrawRect(player->getPos(), { iTileSize, iTileSize }, olc::YELLOW);
+		}
+		void playEffect(const SoundEffect se)
+		{
+			std::vector<int> v;
+			switch (se)
+			{
+			case SoundEffect::VICTORY: v = aWah;   break;
+			case SoundEffect::YUMMY:   v = aYum;   break;
+			case SoundEffect::PAC:     v = aPac;   break;
+			case SoundEffect::FART:    v = aFart;  break;
+			case SoundEffect::GHOST:   v = aBlbl;  break;
+			case SoundEffect::CLICK:   v = aClick; break;
+			default: return;
+			}
+			olc::SOUND::PlaySample(v[rand() % v.size()]);
 		}
 	};
 }

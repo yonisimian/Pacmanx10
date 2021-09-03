@@ -11,8 +11,8 @@
 namespace pm
 {
 	const int iTileSize = 8;
-	const int iPacmanSpeed = 28;
-	const int iGhostSpeed = 20;
+	const int iPacmanSpeed = 30;
+	const int iGhostSpeed = 21;
 	const int iDotValue = 10;
 	const int iChainLength = 16;
 
@@ -49,6 +49,15 @@ namespace pm
 		GHOST_G,
 
 		COUNT
+	};
+	enum class SoundEffect {
+		// for effects that have multiple versions
+		CLICK = 0,
+		FART,
+		PAC,
+		YUMMY,
+		GHOST,
+		VICTORY
 	};
 	struct LevelData {
 		std::string data;

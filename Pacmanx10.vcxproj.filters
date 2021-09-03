@@ -21,10 +21,64 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Media Include="Assets\Sound\demo.wav">
+    <Media Include="Assets\Sound\pac_01.wav">
       <Filter>Resource Files\Sound</Filter>
     </Media>
-    <Media Include="Assets\Sound\untitled.wav">
+    <Media Include="Assets\Sound\pac_02.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\pac_03.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\pac_04.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\level_music.mp3">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\click_01.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\click_02.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\fart_01.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\fart_02.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\wah_01.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\wah_02.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\wah_03.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\yummy_11.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\yummy_12.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\yummy_13.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\blblbl_01.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\blblbl_02.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\blblbl_03.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\game_over.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\main_menu.wav">
       <Filter>Resource Files\Sound</Filter>
     </Media>
   </ItemGroup>

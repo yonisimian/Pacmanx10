@@ -105,6 +105,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,8 +147,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Media Include="Assets\Sound\demo.wav" />
-    <Media Include="Assets\Sound\untitled.wav" />
+    <Media Include="Assets\Sound\blblbl_01.wav" />
+    <Media Include="Assets\Sound\blblbl_02.wav" />
+    <Media Include="Assets\Sound\blblbl_03.wav" />
+    <Media Include="Assets\Sound\click_01.wav" />
+    <Media Include="Assets\Sound\click_02.wav" />
+    <Media Include="Assets\Sound\fart_01.wav" />
+    <Media Include="Assets\Sound\fart_02.wav" />
+    <Media Include="Assets\Sound\game_over.wav" />
+    <Media Include="Assets\Sound\level_music.mp3" />
+    <Media Include="Assets\Sound\main_menu.wav" />
+    <Media Include="Assets\Sound\pac_01.wav" />
+    <Media Include="Assets\Sound\pac_02.wav" />
+    <Media Include="Assets\Sound\pac_03.wav" />
+    <Media Include="Assets\Sound\pac_04.wav" />
+    <Media Include="Assets\Sound\wah_01.wav" />
+    <Media Include="Assets\Sound\wah_02.wav" />
+    <Media Include="Assets\Sound\wah_03.wav" />
+    <Media Include="Assets\Sound\yummy_11.wav" />
+    <Media Include="Assets\Sound\yummy_12.wav" />
+    <Media Include="Assets\Sound\yummy_13.wav" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="data.txt" />

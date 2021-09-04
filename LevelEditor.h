@@ -9,6 +9,7 @@ namespace pm
 	class LevelEditor
 	{
 		olc::PixelGameEngine& game;
+		std::vector<olc::Decal*>& decals;
 		olc::vi2d vEditorPos; // in "tile space"
 
 		std::vector<Button*> buttons;
@@ -17,11 +18,12 @@ namespace pm
 
 		Level* currLevel;
 	public:
-		LevelEditor(olc::PixelGameEngine& game) :
+		LevelEditor(olc::PixelGameEngine& game, std::vector<olc::Decal*>& decals) :
 			game(game),
+			decals(decals),
 			vEditorPos({ 10, 0 })
 		{
-			currLevel = new Level(game, tileToScreen(vEditorPos));
+			currLevel = new Level(game, decals, tileToScreen(vEditorPos));
 
 			buttons.push_back(new Button(game, tileToScreen(6, 0), "+1", [this] { currLevel->incrementWidth(1);   }));
 			buttons.push_back(new Button(game, tileToScreen(8, 0), "+5", [this] { currLevel->incrementWidth(5);   }));

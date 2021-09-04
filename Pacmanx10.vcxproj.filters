@@ -115,4 +115,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Graphics\wall.png">
+      <Filter>Resource Files\Graphics</Filter>
+    </Image>
+    <Image Include="Assets\Graphics\wall2.png">
+      <Filter>Resource Files\Graphics</Filter>
+    </Image>
+    <Image Include="Assets\Graphics\mini pacman.png">
+      <Filter>Resource Files\Graphics</Filter>
+    </Image>
+    <Image Include="Assets\Graphics\pacman.png">
+      <Filter>Resource Files\Graphics</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

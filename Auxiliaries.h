@@ -3,14 +3,23 @@
 
 #define BOARD_MAP std::map<olc::vi2d, std::shared_ptr<GameObject>, std::function<bool(const olc::vi2d& v1, const olc::vi2d& v2)>>
 #define MAKE_BOARD BOARD_MAP([&](auto v1, auto v2) { return v1.y == v2.y ? v1.x < v2.x : v1.y < v2.y; })
-#define MAKE_TILE(game, type) (std::make_pair(pos, std::shared_ptr<GameObject>(new type(game, tileToScreen(pos), isOldschool))))
+#define MAKE_TILE(game, type, image) (std::make_pair(pos, std::shared_ptr<GameObject>(new type(game, tileToScreen(pos), isOldschool, image))))
+
+#define PATH_DATA "./Assets/data.txt"
+#define PATH_SOUND "./Assets/Sound/"
+#define PATH_GRAPHICS "./Assets/Graphics/"
 
 #include <queue>
 #include <random>
 
 namespace pm
 {
+#pragma region Definitions
+
 	const int iTileSize = 8;
+	const olc::vf2d vTile(iTileSize, iTileSize);
+	const olc::vf2d vHalfTile(iTileSize / 2.0f, iTileSize / 2.0f);
+
 	const int iPacmanSpeed = 30;
 	const int iGhostSpeed = 21;
 	const int iDotValue = 10;
@@ -27,9 +36,15 @@ namespace pm
 	static const char SYMBOL_GHOSTY =  'y';
 	static const char SYMBOL_GHOSTG =  'g';
 	static const char SYMBOL_WALL   =  '#';
-	static const char SYMBOL_WALLB  =  '$';
 	static const char SYMBOL_DOT    =  '.';
 	static const char SYMBOL_POWERUP = 'o';
+
+	static const std::array<std::string, 3> SPRITE_NAMES = { "wall2.png" , "pacman.png", "mini pacman2.png"};
+	enum SpritesNames {
+		SPRITE_WALL = 0,
+		SPRITE_PACMAN,
+		SPRITE_MINI_PACMAN
+	};
 
 	enum class Dir {
 		UP = 0,
@@ -40,7 +55,6 @@ namespace pm
 	enum class Kind {
 		EMPTY = 0,
 		WALL,
-		WALL_B,
 		DOT,
 		POWER_UP,
 		PLAYER,
@@ -116,7 +130,6 @@ namespace pm
 		case Kind::GHOST_G:  return SYMBOL_GHOSTG;
 		case Kind::DOT:      return SYMBOL_DOT;
 		case Kind::WALL:     return SYMBOL_WALL;
-		case Kind::WALL_B:   return SYMBOL_WALLB;
 		case Kind::POWER_UP: return SYMBOL_POWERUP;
 		}
 		return SYMBOL_EMPTY;
@@ -127,7 +140,6 @@ namespace pm
 		{
 		case SYMBOL_EMPTY:   return Kind::EMPTY;
 		case SYMBOL_WALL:	 return Kind::WALL;
-		case SYMBOL_WALLB:	 return Kind::WALL_B;
 		case SYMBOL_GHOSTR:	 return Kind::GHOST_R;  
 		case SYMBOL_GHOSTB:  return Kind::GHOST_B;
 		case SYMBOL_GHOSTY:  return Kind::GHOST_Y;
@@ -154,17 +166,21 @@ namespace pm
 		return point.x >= rectPos.x && point.x <= rectPos.x + rectSize.x && point.y >= rectPos.y && point.y <= rectPos.y + rectSize.y;
 	}
 
+#pragma endregion
+
 	struct GameObject
 	{
 		olc::PixelGameEngine& game;
 		Kind kind;
 		olc::vi2d vInitPos;
+		olc::Decal* image;
 		bool isOldschool; // true for isOldschool gameplay, false for futuristic gameplay
 
-		GameObject(olc::PixelGameEngine& game, Kind kind, const olc::vi2d& vInitPos, bool isOldschool) :
+		GameObject(olc::PixelGameEngine& game, Kind kind, const olc::vi2d& vInitPos, olc::Decal* image, bool isOldschool) :
 			game(game),
 			kind(kind),
 			vInitPos(vInitPos),
+			image(image),
 			isOldschool(isOldschool)
 		{}
 		virtual void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const = 0;
@@ -175,18 +191,19 @@ namespace pm
 	{
 		uint8_t walls; // 0b1111, one bit for each wall (up / down / left / right)
 		olc::Pixel color;
-		Wall(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, const olc::Pixel color = olc::WHITE) :
-			GameObject(game, Kind::WALL, vInitPos, isOldschool),
-			color(color),
-			walls(0b1111)
+		Wall(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, olc::Decal* image = nullptr, const olc::Pixel color = olc::RED) :
+			GameObject(game, Kind::WALL, vInitPos, image, isOldschool),
+			walls(0b1111),
+			color(color)
 		{};
 		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
 			//game.DrawRect(vInitPos + offset, { iTileSize , iTileSize }, color);
-			if (walls & 0b1000) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(iTileSize, 0        ), color);
-			if (walls & 0b0100) game.DrawLine(vInitPos + offset + olc::vi2d(0, iTileSize), vInitPos + offset + olc::vi2d(iTileSize, iTileSize), color);
-			if (walls & 0b0010) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(0,         iTileSize), color);
-			if (walls & 0b0001) game.DrawLine(vInitPos + offset + olc::vi2d(iTileSize, 0), vInitPos + offset + olc::vi2d(iTileSize, iTileSize), color);
+			game.DrawDecal(vInitPos + offset, image);
+			if (walls & 0b1000) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(iTileSize - 1, 0        ), color);
+			if (walls & 0b0100) game.DrawLine(vInitPos + offset + olc::vi2d(0, iTileSize - 1), vInitPos + offset + olc::vi2d(iTileSize - 1, iTileSize - 1), color);
+			if (walls & 0b0010) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(0,             iTileSize - 1), color);
+			if (walls & 0b0001) game.DrawLine(vInitPos + offset + olc::vi2d(iTileSize - 1, 0), vInitPos + offset + olc::vi2d(iTileSize - 1, iTileSize - 1), color);
 
 			// game.FillRect(vInitPos + offset + olc::vi2d(1, 1), olc::vi2d(iTileSize - 1, iTileSize - 1), olc::Pixel(255, 255, 255, 50));
 		}
@@ -194,8 +211,8 @@ namespace pm
 	struct Dot : public GameObject
 	{
 		int value;
-		Dot(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true) :
-			GameObject(game, Kind::DOT, vInitPos, isOldschool),
+		Dot(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, olc::Decal* image = nullptr) :
+			GameObject(game, Kind::DOT, vInitPos, image, isOldschool),
 			value(isOldschool ? iDotValue : randomBool(0.6f))
 		{}
 		virtual void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
@@ -211,8 +228,8 @@ namespace pm
 		static const int speed = 400;
 		float blue;
 		bool dirUp;
-		PowerUp(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true) :
-			GameObject(game, Kind::POWER_UP, vInitPos, isOldschool),
+		PowerUp(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, olc::Decal * image = nullptr) :
+			GameObject(game, Kind::POWER_UP, vInitPos, image, isOldschool),
 			blue(255),
 			dirUp(false)
 		{}
@@ -239,8 +256,8 @@ namespace pm
 		int iLevelWidth;
 		int iLevelHeight;
 	public:
-		MoveableObject(olc::PixelGameEngine& game, const Kind kind, const olc::vf2d& pos, bool isOldschool, const int speed, const int iLevelWidth, const int iLevelHeight, const Dir dir = Dir::RIGHT) :
-			GameObject(game, kind, pos, isOldschool),
+		MoveableObject(olc::PixelGameEngine& game, const Kind kind, const olc::vf2d& pos, olc::Decal* image, bool isOldschool, const int speed, const int iLevelWidth, const int iLevelHeight, const Dir dir = Dir::RIGHT) :
+			GameObject(game, kind, pos, image, isOldschool),
 			initDir(dir),
 			iSpeed(speed),
 			iLevelWidth(iLevelWidth),
@@ -332,8 +349,8 @@ namespace pm
 		-2 = this (ghost). */
 		int* map;
 	public:
-		Ghost(olc::PixelGameEngine& game, const olc::vi2d& vPos, olc::Pixel color, Kind kind, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr, const Dir initialDir = Dir::RIGHT) :
-			MoveableObject(game, kind, vPos, isOldschool, iGhostSpeed, levelWidth, levelHeight, initialDir),
+		Ghost(olc::PixelGameEngine& game, const olc::vi2d& vPos, olc::Decal* image, olc::Pixel color, Kind kind, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr, const Dir initialDir = Dir::RIGHT) :
+			MoveableObject(game, kind, vPos, image, isOldschool, iGhostSpeed, levelWidth, levelHeight, initialDir),
 			color(color),
 			currState(GhostState::STRONG),
 			fWeakTime(WEAK_TIME),
@@ -515,8 +532,8 @@ namespace pm
 	class YellowGhost : public Ghost
 	{
 	public:
-		YellowGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr) :
-			Ghost(game, vPos, olc::YELLOW, Kind::GHOST_Y, levelWidth, levelHeight, board, isOldschool, vTargetPos, Dir::DOWN)
+		YellowGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::Decal* image = nullptr, olc::vf2d* vTargetPos = nullptr) :
+			Ghost(game, vPos, image, olc::YELLOW, Kind::GHOST_Y, levelWidth, levelHeight, board, isOldschool, vTargetPos, Dir::DOWN)
 		{}
 		void updateStrong(float fElapsedTime) override
 		{
@@ -538,8 +555,8 @@ namespace pm
 		float fPassedTime;
 		bool bSmart;
 	public:
-		BlueGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr) :
-			Ghost(game, vPos, olc::BLUE, Kind::GHOST_B, levelWidth, levelHeight, board, isOldschool, vTargetPos, Dir::DOWN),
+		BlueGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::Decal* image = nullptr, olc::vf2d* vTargetPos = nullptr) :
+			Ghost(game, vPos, image, olc::BLUE, Kind::GHOST_B, levelWidth, levelHeight, board, isOldschool, vTargetPos, Dir::DOWN),
 			fPassedTime(0.0f),
 			bSmart(true)
 		{}
@@ -570,8 +587,8 @@ namespace pm
 		float fPassedTime;
 		bool bSmart;
 	public:
-		RedGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr) :
-			Ghost(game, vPos, olc::RED, Kind::GHOST_R, levelWidth, levelHeight, board, isOldschool, vTargetPos),
+		RedGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::Decal* image = nullptr, olc::vf2d* vTargetPos = nullptr) :
+			Ghost(game, vPos, image, olc::RED, Kind::GHOST_R, levelWidth, levelHeight, board, isOldschool, vTargetPos),
 			fPassedTime(0.0f),
 			bSmart(true)
 		{}
@@ -607,8 +624,8 @@ namespace pm
 		float fPassedTime;
 		Behaviour behaviour;
 	public:
-		GreenGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr) :
-			Ghost(game, vPos, olc::GREEN, Kind::GHOST_G, levelWidth, levelHeight, board, isOldschool, vTargetPos),
+		GreenGhost(olc::PixelGameEngine& game, const olc::vi2d& vPos, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::Decal* image = nullptr, olc::vf2d* vTargetPos = nullptr) :
+			Ghost(game, vPos, image, olc::GREEN, Kind::GHOST_G, levelWidth, levelHeight, board, isOldschool, vTargetPos),
 			fPassedTime(0.0f),
 			behaviour(Behaviour::DUMB1)
 		{}
@@ -647,8 +664,8 @@ namespace pm
 	class Pacman : public MoveableObject
 	{
 	public:
-		Pacman(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, const int iLevelWidth, const int iLevelHeight, bool isOldschool = true) :
-			MoveableObject(game, Kind::PLAYER, vInitPos, isOldschool, int(iPacmanSpeed), iLevelWidth, iLevelHeight)
+		Pacman(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, const int iLevelWidth, const int iLevelHeight, bool isOldschool = true, olc::Decal * image = nullptr) :
+			MoveableObject(game, Kind::PLAYER, vInitPos, image, isOldschool, int(iPacmanSpeed), iLevelWidth, iLevelHeight)
 		{}
 		void getInput(olc::PixelGameEngine& game)
 		{
@@ -662,21 +679,24 @@ namespace pm
 		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
 			olc::Pixel color = isOldschool ? olc::YELLOW : olc::YELLOW;
-			game.DrawLine(vPos.x + offset.x + 3, vPos.y + offset.y + 0, vPos.x + offset.x + 5, vPos.y + offset.y + 0, color);
-			game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 1, vPos.x + offset.x + 7, vPos.y + offset.y + 1, color);
-			game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 2, vPos.x + offset.x + 6, vPos.y + offset.y + 2, color);
-			game.DrawLine(vPos.x + offset.x + 0, vPos.y + offset.y + 3, vPos.x + offset.x + 4, vPos.y + offset.y + 3, color);
-			game.DrawLine(vPos.x + offset.x + 0, vPos.y + offset.y + 4, vPos.x + offset.x + 3, vPos.y + offset.y + 4, color);
-			game.DrawLine(vPos.x + offset.x + 0, vPos.y + offset.y + 5, vPos.x + offset.x + 4, vPos.y + offset.y + 5, color);
-			game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 6, vPos.x + offset.x + 6, vPos.y + offset.y + 6, color);
-			game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 7, vPos.x + offset.x + 7, vPos.y + offset.y + 7, color);
-			game.DrawLine(vPos.x + offset.x + 3, vPos.y + offset.y + 8, vPos.x + offset.x + 5, vPos.y + offset.y + 8, color);
+			
+			game.DrawRotatedDecal(olc::vi2d(vPos) + offset + vHalfTile, image, 0.0f, vHalfTile);
+
+			//game.DrawLine(vPos.x + offset.x + 3, vPos.y + offset.y + 0, vPos.x + offset.x + 5, vPos.y + offset.y + 0, color);
+			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 1, vPos.x + offset.x + 7, vPos.y + offset.y + 1, color);
+			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 2, vPos.x + offset.x + 6, vPos.y + offset.y + 2, color);
+			//game.DrawLine(vPos.x + offset.x + 0, vPos.y + offset.y + 3, vPos.x + offset.x + 3, vPos.y + offset.y + 3, color);
+			//game.DrawLine(vPos.x + offset.x + 0, vPos.y + offset.y + 4, vPos.x + offset.x + 3, vPos.y + offset.y + 4, color);
+			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 5, vPos.x + offset.x + 6, vPos.y + offset.y + 5, color);
+			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 6, vPos.x + offset.x + 7, vPos.y + offset.y + 6, color);
+			//game.DrawLine(vPos.x + offset.x + 3, vPos.y + offset.y + 7, vPos.x + offset.x + 5, vPos.y + offset.y + 7, color);
 		}
 	};
 
 	struct Level {
 		olc::PixelGameEngine& game;
 		olc::vi2d vPos; // in screen space
+		std::vector<olc::Decal*>& decals;
 		BOARD_MAP board;
 		bool isOldschool;
 		std::vector<std::shared_ptr<Ghost>> ghosts;
@@ -685,9 +705,10 @@ namespace pm
 		int width;
 		int height;
 		int iDots;
-		Level(olc::PixelGameEngine& game, const olc::vi2d& pos = { 0, 0 }, bool isOldschool = true, const int width = DEFAULT_LEVEL_WIDTH, const int height = DEFAULT_LEVEL_HEIGHT) :
+		Level(olc::PixelGameEngine& game, std::vector<olc::Decal*>& decals, const olc::vi2d& pos = { 0, 0 }, bool isOldschool = true, const int width = DEFAULT_LEVEL_WIDTH, const int height = DEFAULT_LEVEL_HEIGHT) :
 			game(game),
 			vPos(pos),
+			decals(decals),
 			board(MAKE_BOARD),
 			isOldschool(isOldschool),
 			player(nullptr),
@@ -695,9 +716,10 @@ namespace pm
 			height(height),
 			iDots(0)
 		{}
-		Level(olc::PixelGameEngine& game, LevelData data, bool isOldschool = true, const olc::vi2d& pos = { 0, 0 }) :
+		Level(olc::PixelGameEngine& game, std::vector<olc::Decal*>& decals, LevelData data, bool isOldschool = true, const olc::vi2d& pos = { 0, 0 }) :
 			game(game),
 			vPos(pos),
+			decals(decals),
 			board(MAKE_BOARD),
 			isOldschool(isOldschool),
 			player(nullptr),
@@ -756,16 +778,15 @@ namespace pm
 			switch (kind)
 			{
 			case Kind::PLAYER:
-				player = std::shared_ptr<Pacman>(new Pacman(game, tileToScreen(pos), width, height, isOldschool));
+				player = std::shared_ptr<Pacman>(new Pacman(game, tileToScreen(pos), width, height, isOldschool, decals[isOldschool ? SPRITE_PACMAN : SPRITE_MINI_PACMAN]));
 				board.emplace(std::make_pair(pos, player));
 				break;
 			case Kind::GHOST_B:  ghost = std::shared_ptr<Ghost>(new BlueGhost  (game, tileToScreen(pos), width, height, board, isOldschool)); break;
 			case Kind::GHOST_R:  ghost = std::shared_ptr<Ghost>(new RedGhost   (game, tileToScreen(pos), width, height, board, isOldschool)); break;
 			case Kind::GHOST_Y:  ghost = std::shared_ptr<Ghost>(new YellowGhost(game, tileToScreen(pos), width, height, board, isOldschool)); break;
 			case Kind::GHOST_G:  ghost = std::shared_ptr<Ghost>(new GreenGhost (game, tileToScreen(pos), width, height, board, isOldschool)); break;
-			case Kind::DOT:      board.emplace(MAKE_TILE(game, Dot));  ++iDots;   break;
-			case Kind::WALL:     board.emplace(MAKE_TILE(game, Wall));    break;
-			case Kind::WALL_B:   board.emplace(std::make_pair(pos, std::shared_ptr<GameObject>(new Wall(game, tileToScreen(pos), isOldschool, olc::DARK_YELLOW))));    break;
+			case Kind::DOT:      board.emplace(MAKE_TILE(game, Dot, nullptr));  ++iDots;   break;
+			case Kind::WALL:     board.emplace(MAKE_TILE(game, Wall, decals[SPRITE_WALL]));    break;  break;
 			case Kind::POWER_UP: {std::shared_ptr<PowerUp> pu(new PowerUp(game, tileToScreen(pos), isOldschool)); board.emplace(std::make_pair(pos, pu)); powerUps.push_back(pu);  break; }
 			}
 

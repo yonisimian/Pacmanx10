@@ -12,9 +12,6 @@
 #include <fstream>
 #include <bitset>
 
-#define PATH_DATA "./Assets/data.txt"
-#define PATH_SOUND "./Assets/Sound/"
-
 namespace fs = std::experimental::filesystem;
 
 namespace pm
@@ -23,6 +20,7 @@ namespace pm
 	{
 		static const float constexpr COUNT_DOWN_TIME = 3.0f;
 		static const float constexpr CHAIN_DOWN_TIME = 1.0f;
+		static const float constexpr CHEER_DOWN_TIME = 10.0f;
 		static const int DEFAULT_LIFE = 3;
 
 		enum class GameState {
@@ -60,17 +58,23 @@ namespace pm
 		float timeCountDown; // for GAME_SET
 		int lives;
 
-		// modern gameplay
-		int chain;
-		float chainCountDown;
-
 		GameState currState;
 		GameState nextState;
 
 		LevelEditor* editor;
 
+		// modern gameplay
+		int chain;
+		float chainCountDown;
 
-		// sound management
+		// cheerleading pacman
+		static inline const std::array<std::string, 5> strCheerDad = { "", "Are ya winning son?", "Go son!", "That's ma boy!", "I'm so proud :)" };
+		static inline const std::array<std::string, 5> strCheerSon = { "", "Are ya winning dad!?", "Go daddy!", "I love ya dad!", "Go kick those ghosts!"};
+		int currCheerString;
+		olc::Decal* currCheerleader;
+		float cheerCountDown;
+
+		// sound
 		int aBG;
 		int aGameover;
 		int aLevel;
@@ -81,6 +85,10 @@ namespace pm
 		std::vector<int> aWah;
 		std::vector<int> aYum;
 		std::vector<int> aBlbl;
+
+		// graphics
+		std::vector<olc::Decal*> decals;
+		
 	public:
 		Game() :
 			title_game (*this, tileToScreen(6, 1), "Pacmanx10"),
@@ -94,6 +102,8 @@ namespace pm
 			lives(DEFAULT_LIFE),
 			currState(GameState::MM_MAIN),
 			nextState(GameState::MM_MAIN),
+			cheerCountDown(CHEER_DOWN_TIME),
+			currCheerString(0),
 			aBG(olc::SOUND::LoadAudioSample(PATH_SOUND "main_menu.wav")),
 			aGameover(olc::SOUND::LoadAudioSample(PATH_SOUND "game_over.wav")),
 			aLevel(olc::SOUND::LoadAudioSample(PATH_SOUND "level_music.wav")),
@@ -170,13 +180,27 @@ namespace pm
 
 		void resetCurrLevel()
 		{
-			currLevel.reset(new Level(*this, levelDatas[iCurrLevel], false));
+			chain = 0;
+			time = 0.0f;
+			chainCountDown = 0;
+			timeCountDown = COUNT_DOWN_TIME;
+			cheerCountDown = CHEER_DOWN_TIME;
+
+			currLevel.reset(new Level(*this, decals, levelDatas[iCurrLevel], false, tileToScreen(0, 1)));
+			currCheerleader = currLevel->isOldschool ? decals[SPRITE_MINI_PACMAN] : decals[SPRITE_PACMAN];
 		}
 
 #pragma endregion
 
 		bool OnUserCreate() override
 		{
+			// Graphics
+			for (int i = 0; i < SPRITE_NAMES.size(); ++i)
+			{
+				decals.push_back(new olc::Decal(new olc::Sprite(PATH_GRAPHICS + SPRITE_NAMES[i])));
+			}
+
+
 			// UI
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play", [this] { olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(12, 7) + olc::vi2d(iTileSize / 2, 0), "About", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_ABOUT; }));
@@ -193,7 +217,7 @@ namespace pm
 			// Audio
 			for (int i = 1; i <= 4; ++i) aPac  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "pac_0"    + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 3; ++i) aYum  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "yummy_0"  + std::to_string(i) + ".wav"));
-			for (int i = 1; i <= 3; ++i) aWah  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "wah_0"    + std::to_string(i) + ".wav"));
+			for (int i = 3; i <= 3; ++i) aWah  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "wah_0"    + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 2; ++i) aFart .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "fart_0"   + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 3; ++i) aBlbl .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "blblbl_0" + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 2; ++i) aClick.push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "click_0"  + std::to_string(i) + ".wav"));
@@ -205,7 +229,7 @@ namespace pm
 			if (!olc::SOUND::InitialiseAudio()) return false;
 			olc::SOUND::PlaySample(aBG, true);
 
-			editor = new LevelEditor(*this);
+			editor = new LevelEditor(*this, decals);
 
 			return true;
 		}
@@ -289,7 +313,8 @@ namespace pm
 					// ============== UPDATE ==============
 					time += fElapsedTime;
 					
-					if (chainCountDown != 0)
+					// add score in modern gameplay
+					if (!currLevel->isOldschool && chainCountDown != 0)
 					{
 						chainCountDown -= fElapsedTime;
 						if (chainCountDown < 0.0f)
@@ -299,6 +324,14 @@ namespace pm
 							chain = 0;
 							chainCountDown = 0;
 						}
+					}
+
+					// cheerleading pacman
+					cheerCountDown -= fElapsedTime;
+					if (cheerCountDown <= 0.0f)
+					{
+						currCheerString = rand() % (currLevel->isOldschool ? strCheerSon.size() : strCheerDad.size());
+						cheerCountDown = CHEER_DOWN_TIME;
 					}
 
 					// update powerUps animation
@@ -363,7 +396,7 @@ namespace pm
 									{
 										olc::SOUND::StopAll();
 										olc::SOUND::PlaySample(aGameover);
-										timeCountDown = 6; // Hard-coded number damnnnnnnnnnnnn
+										timeCountDown = 6; // Hard-coded number DAMNNNN
 										nextState = GameState::GAME_LOSE;
 									}
 									else
@@ -415,9 +448,11 @@ namespace pm
 					timeCountDown -= fElapsedTime;
 					if (timeCountDown <= 0)
 					{
+						if (!currLevel->isOldschool)
+							score += chain;
+						
 						loadNextLevel();
 						nextState = GameState::GAME_SET;
-						timeCountDown = COUNT_DOWN_TIME;
 						olc::SOUND::PlaySample(aLevel);
 						break;
 					}
@@ -439,6 +474,7 @@ namespace pm
 						time = 0.0f;
 						timeCountDown = COUNT_DOWN_TIME;
 						chainCountDown = CHAIN_DOWN_TIME;
+						cheerCountDown = CHEER_DOWN_TIME;
 						lives = DEFAULT_LIFE;
 
 						loadLevel(iCurrLevel);
@@ -476,16 +512,20 @@ namespace pm
 
 			currLevel->draw();
 
-			// UI
-			int x = currLevel->width * iTileSize + 4;
-			int y = currLevel->height * iTileSize + 4;
+			// Cheerleading pacman
+			DrawDecal(olc::vi2d(2, 0), currCheerleader);
+			DrawString(tileToScreen(2, 0), currLevel->isOldschool ? strCheerSon[currCheerString] : strCheerDad[currCheerString]);
+
+			// Info
+			int y = currLevel->height * iTileSize + currLevel->vPos.y;
 			int livesColor = std::clamp(lives * 150, 0, 255);
 			DrawString({ 0, y + 1 }, "Time:  " + std::to_string((int)time));
 			DrawString({ 0, y + 11 }, "Score: " + std::to_string(score));
 			DrawString({ 0, y + 21 }, "Lives: " + std::to_string(lives), olc::Pixel(255, livesColor, livesColor));
 			if (!currLevel->isOldschool)
 			{
-				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<iChainLength>(chain).to_string());
+				int chainColor = std::clamp(255 - int(pow(log2(chain + 1), 2)), 0, 255);
+				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<iChainLength>(chain).to_string(), olc::Pixel(chainColor, 255, chainColor));
 				DrawString({ 0, y + 41 }, "Chain-Time: " + std::to_string(chainCountDown).substr(0, 4));
 			}
 

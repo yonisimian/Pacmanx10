@@ -183,6 +183,12 @@
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Graphics\mini pacman.png" />
+    <Image Include="Assets\Graphics\pacman.png" />
+    <Image Include="Assets\Graphics\wall.png" />
+    <Image Include="Assets\Graphics\wall2.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

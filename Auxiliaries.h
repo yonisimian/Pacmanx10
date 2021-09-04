@@ -15,6 +15,7 @@ namespace pm
 	const int iGhostSpeed = 21;
 	const int iDotValue = 10;
 	const int iChainLength = 16;
+	const int iGhostValue = 200;
 
 	const int DEFAULT_LEVEL_WIDTH = 16;
 	const int DEFAULT_LEVEL_HEIGHT = 16;

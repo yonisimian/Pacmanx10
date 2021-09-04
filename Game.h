@@ -12,7 +12,7 @@
 #include <fstream>
 #include <bitset>
 
-#define PATH_DATA "./data.txt"
+#define PATH_DATA "./Assets/data.txt"
 #define PATH_SOUND "./Assets/Sound/"
 
 namespace fs = std::experimental::filesystem;
@@ -33,6 +33,7 @@ namespace pm
 			GAME_PLAY,
 			GAME_PAUSE,
 			GAME_WIN,
+			GAME_LOSE,
 			LEVEL_EDITOR,
 		};
 
@@ -59,7 +60,7 @@ namespace pm
 		float timeCountDown; // for GAME_SET
 		int lives;
 
-		// futuristic gameplay
+		// modern gameplay
 		int chain;
 		float chainCountDown;
 
@@ -73,6 +74,7 @@ namespace pm
 		int aBG;
 		int aGameover;
 		int aLevel;
+		int aScoreUp;
 		std::vector<int> aPac;
 		std::vector<int> aClick;
 		std::vector<int> aFart;
@@ -88,13 +90,14 @@ namespace pm
 			time(0.0f),
 			timeCountDown(COUNT_DOWN_TIME),
 			chain(0),
-			chainCountDown(0),
+			chainCountDown(CHAIN_DOWN_TIME),
 			lives(DEFAULT_LIFE),
 			currState(GameState::MM_MAIN),
 			nextState(GameState::MM_MAIN),
 			aBG(olc::SOUND::LoadAudioSample(PATH_SOUND "main_menu.wav")),
 			aGameover(olc::SOUND::LoadAudioSample(PATH_SOUND "game_over.wav")),
-			aLevel(olc::SOUND::LoadAudioSample(PATH_SOUND "level_music.wav"))
+			aLevel(olc::SOUND::LoadAudioSample(PATH_SOUND "level_music.wav")),
+			aScoreUp(olc::SOUND::LoadAudioSample(PATH_SOUND "score_up.wav"))
 		{
 			sAppName = "Pacmanx10";
 		}
@@ -285,13 +288,17 @@ namespace pm
 
 					// ============== UPDATE ==============
 					time += fElapsedTime;
-					chainCountDown -= fElapsedTime;
 					
-					if (chainCountDown < 0.0f)
+					if (chainCountDown != 0)
 					{
-						score += chain;
-						chain = 0;
-						chainCountDown = 0;
+						chainCountDown -= fElapsedTime;
+						if (chainCountDown < 0.0f)
+						{
+							if (chain >= 420) olc::SOUND::PlaySample(aScoreUp);
+							score += chain;
+							chain = 0;
+							chainCountDown = 0;
+						}
 					}
 
 					// update powerUps animation
@@ -323,7 +330,9 @@ namespace pm
 							currLevel->board.erase(it);
 							if (--currLevel->iDots == 0) // end level!
 							{
+								olc::SOUND::StopAll();
 								playEffect(SoundEffect::VICTORY);
+								timeCountDown = COUNT_DOWN_TIME;
 								nextState = GameState::GAME_WIN;
 							}
 							break;
@@ -350,14 +359,24 @@ namespace pm
 								switch (ghost->getState())
 								{
 								case Ghost::GhostState::STRONG:
-									playEffect(SoundEffect::GHOST);
-									resetLevel();
-									lives--;
-									nextState = GameState::GAME_SET;
+									if (lives == 0) // end game!!
+									{
+										olc::SOUND::StopAll();
+										olc::SOUND::PlaySample(aGameover);
+										timeCountDown = 6; // Hard-coded number damnnnnnnnnnnnn
+										nextState = GameState::GAME_LOSE;
+									}
+									else
+									{
+										playEffect(SoundEffect::GHOST);
+										resetLevel();
+										lives--;
+										nextState = GameState::GAME_SET;
+									}
 									break;
 								case Ghost::GhostState::WEAK:
 									ghost->makeEaten();
-									score += currLevel->isOldschool ? 200 : int(pow(2, iChainLength - 1));
+									score += currLevel->isOldschool ? iGhostValue : int(pow(2, iChainLength - 1));
 									break;
 									//case Ghost::GhostState::EATEN: break;
 								}
@@ -393,8 +412,40 @@ namespace pm
 				}
 				case GameState::GAME_WIN:
 				{
-					loadNextLevel();
-					nextState = GameState::GAME_SET;
+					timeCountDown -= fElapsedTime;
+					if (timeCountDown <= 0)
+					{
+						loadNextLevel();
+						nextState = GameState::GAME_SET;
+						timeCountDown = COUNT_DOWN_TIME;
+						olc::SOUND::PlaySample(aLevel);
+						break;
+					}
+
+					drawGame();
+
+					break;
+				}
+				case GameState::GAME_LOSE:
+				{
+					timeCountDown -= fElapsedTime;
+					if (timeCountDown <= 0)
+					{
+						nextState = GameState::MM_MAIN;
+
+						iCurrLevel = 0;
+						score = 0;
+						chain = 0;
+						time = 0.0f;
+						timeCountDown = COUNT_DOWN_TIME;
+						chainCountDown = CHAIN_DOWN_TIME;
+						lives = DEFAULT_LIFE;
+
+						loadLevel(iCurrLevel);
+
+						olc::SOUND::PlaySample(aBG, true);
+						break;
+					}
 
 					drawGame();
 
@@ -428,9 +479,10 @@ namespace pm
 			// UI
 			int x = currLevel->width * iTileSize + 4;
 			int y = currLevel->height * iTileSize + 4;
+			int livesColor = std::clamp(lives * 150, 0, 255);
 			DrawString({ 0, y + 1 }, "Time:  " + std::to_string((int)time));
 			DrawString({ 0, y + 11 }, "Score: " + std::to_string(score));
-			DrawString({ 0, y + 21 }, "Lives: " + std::to_string(lives));
+			DrawString({ 0, y + 21 }, "Lives: " + std::to_string(lives), olc::Pixel(255, livesColor, livesColor));
 			if (!currLevel->isOldschool)
 			{
 				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<iChainLength>(chain).to_string());

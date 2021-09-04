@@ -81,12 +81,15 @@
     <Media Include="Assets\Sound\main_menu.wav">
       <Filter>Resource Files\Sound</Filter>
     </Media>
+    <Media Include="Assets\Sound\score_up.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="data.txt">
+    <Text Include="TODO">
       <Filter>Resource Files</Filter>
     </Text>
-    <Text Include="TODO">
+    <Text Include="Assets\data.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>

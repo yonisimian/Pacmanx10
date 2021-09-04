@@ -161,6 +161,7 @@
     <Media Include="Assets\Sound\pac_02.wav" />
     <Media Include="Assets\Sound\pac_03.wav" />
     <Media Include="Assets\Sound\pac_04.wav" />
+    <Media Include="Assets\Sound\score_up.wav" />
     <Media Include="Assets\Sound\wah_01.wav" />
     <Media Include="Assets\Sound\wah_02.wav" />
     <Media Include="Assets\Sound\wah_03.wav" />
@@ -169,7 +170,7 @@
     <Media Include="Assets\Sound\yummy_13.wav" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="data.txt" />
+    <Text Include="Assets\data.txt" />
     <Text Include="TODO" />
   </ItemGroup>
   <ItemGroup>

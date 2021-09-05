@@ -73,7 +73,8 @@ namespace pm
 		FART,
 		PAC,
 		YUMMY,
-		GHOST,
+		GHOST_EAT_ME,
+		GHOST_EATEN,
 		VICTORY
 	};
 	struct LevelData {
@@ -193,21 +194,23 @@ namespace pm
 	{
 		uint8_t walls; // 0b1111, one bit for each wall (up / down / left / right)
 		olc::Pixel color;
-		Wall(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, olc::Decal* image = nullptr, const olc::Pixel color = olc::RED) :
+		Wall(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, olc::Decal* image = nullptr, const olc::Pixel color = olc::WHITE) :
 			GameObject(game, Kind::WALL, vInitPos, image, isOldschool),
 			walls(0b1111),
 			color(color)
 		{};
 		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
-			//game.DrawRect(vInitPos + offset, { iTileSize , iTileSize }, color);
-			game.DrawDecal(vInitPos + offset, image);
+			//game.DrawRect(vInitPos + offset, vTile, color);
+			game.FillRect(vInitPos + offset, vTile, olc::Pixel(255, 255, 255, 50));
+
+			//game.DrawDecal(vInitPos + offset, image);
+
+			// draw walls outlines
 			if (walls & 0b1000) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(iTileSize - 1, 0        ), color);
 			if (walls & 0b0100) game.DrawLine(vInitPos + offset + olc::vi2d(0, iTileSize - 1), vInitPos + offset + olc::vi2d(iTileSize - 1, iTileSize - 1), color);
 			if (walls & 0b0010) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(0,             iTileSize - 1), color);
 			if (walls & 0b0001) game.DrawLine(vInitPos + offset + olc::vi2d(iTileSize - 1, 0), vInitPos + offset + olc::vi2d(iTileSize - 1, iTileSize - 1), color);
-
-			// game.FillRect(vInitPos + offset + olc::vi2d(1, 1), olc::vi2d(iTileSize - 1, iTileSize - 1), olc::Pixel(255, 255, 255, 50));
 		}
 	};
 	struct Dot : public GameObject

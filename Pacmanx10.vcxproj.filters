@@ -84,6 +84,15 @@
     <Media Include="Assets\Sound\score_up.wav">
       <Filter>Resource Files\Sound</Filter>
     </Media>
+    <Media Include="Assets\Sound\nya_01.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\nya_02.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
+    <Media Include="Assets\Sound\nya_03.wav">
+      <Filter>Resource Files\Sound</Filter>
+    </Media>
   </ItemGroup>
   <ItemGroup>
     <Text Include="TODO">

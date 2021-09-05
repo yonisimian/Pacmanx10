@@ -87,20 +87,22 @@ namespace pm
 		std::vector<int> aClick;
 		std::vector<int> aFart;
 		std::vector<int> aWah;
+		std::vector<int> aNya;
 		std::vector<int> aYum;
 		std::vector<int> aBlbl;
 
 		// graphics
 		std::vector<olc::Decal*> decals;
+		olc::Decal* decalTV;
 		
 	public:
 		Game() :
-			title_game (*this, tileToScreen(6, 1), "Pacmanx10"),
+			title_game (*this, tileToScreen(6, 4), "Pacmanx10"),
 			bQuit(false),
 			iCurrLevel(0),
 			isOldschool(true),
 			isTutorial(true),
-			score(0),
+			score(9999999),
 			time(0.0f),
 			timeCountDown(COUNT_DOWN_TIME),
 			chain(0),
@@ -113,7 +115,8 @@ namespace pm
 			aBG(olc::SOUND::LoadAudioSample(PATH_SOUND "main_menu.wav")),
 			aGameover(olc::SOUND::LoadAudioSample(PATH_SOUND "game_over.wav")),
 			aLevel(olc::SOUND::LoadAudioSample(PATH_SOUND "level_music.wav")),
-			aScoreUp(olc::SOUND::LoadAudioSample(PATH_SOUND "score_up.wav"))
+			aScoreUp(olc::SOUND::LoadAudioSample(PATH_SOUND "score_up.wav")),
+			decalTV(nullptr)
 		{
 			sAppName = "Pacmanx10";
 		}
@@ -192,7 +195,7 @@ namespace pm
 			timeCountDown = COUNT_DOWN_TIME;
 			cheerCountDown = CHEER_DOWN_TIME;
 
-			currLevel.reset(new Level(*this, decals, levelDatas[iCurrLevel], isOldschool, tileToScreen(0, 1)));
+			currLevel.reset(new Level(*this, decals, levelDatas[iCurrLevel], isOldschool, tileToScreen(5, 5)));
 			currCheerleader = isOldschool ? decals[SPRITE_MINI_PACMAN] : decals[SPRITE_PACMAN];
 		}
 
@@ -203,6 +206,7 @@ namespace pm
 			// Graphics
 			for (int i = 0; i < SPRITE_NAMES.size(); ++i)
 				decals.push_back(new olc::Decal(new olc::Sprite(PATH_GRAPHICS + SPRITE_NAMES[i])));
+			decalTV = new olc::Decal(new olc::Sprite(PATH_GRAPHICS "tv3.png"));
 
 			// UI
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 5),  "Play", [this] { loadLevel(isTutorial ? 0 : 5); olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
@@ -223,7 +227,8 @@ namespace pm
 			// Audio
 			for (int i = 1; i <= 4; ++i) aPac  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "pac_0"    + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 3; ++i) aYum  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "yummy_0"  + std::to_string(i) + ".wav"));
-			for (int i = 3; i <= 3; ++i) aWah  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "wah_0"    + std::to_string(i) + ".wav"));
+			for (int i = 1; i <= 3; ++i) aWah  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "wah_0"    + std::to_string(i) + ".wav"));
+			for (int i = 1; i <= 3; ++i) aNya  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "nya_0"    + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 2; ++i) aFart .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "fart_0"   + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 3; ++i) aBlbl .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "blblbl_0" + std::to_string(i) + ".wav"));
 			for (int i = 1; i <= 2; ++i) aClick.push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "click_0"  + std::to_string(i) + ".wav"));
@@ -248,7 +253,8 @@ namespace pm
 
 		bool OnUserUpdate(float fElapsedTime) override
 		{
-			Clear(olc::DARK_GREEN);
+			Clear(olc::BLACK);
+			FillRect(tileToScreen(1, 1), olc::vf2d(ScreenWidth() - 20, ScreenHeight() - 20), olc::DARK_GREEN);
 
 			switch (currState)
 			{
@@ -408,13 +414,14 @@ namespace pm
 									}
 									else
 									{
-										playEffect(SoundEffect::GHOST);
+										playEffect(SoundEffect::GHOST_EAT_ME);
 										resetLevel();
 										lives--;
 										nextState = GameState::GAME_SET;
 									}
 									break;
 								case Ghost::GhostState::WEAK:
+									playEffect(SoundEffect::GHOST_EATEN);
 									ghost->makeEaten();
 									score += isOldschool ? iGhostValue : int(pow(2, iChainLength - 1));
 									break;
@@ -502,6 +509,9 @@ namespace pm
 				}
 			}
 
+			// draw tv
+			DrawDecal(olc::vi2d(-2, -2), decalTV, olc::vf2d(0.825f,0.775f));
+
 			currState = nextState;
 
 			return !bQuit;
@@ -520,20 +530,42 @@ namespace pm
 			currLevel->draw();
 
 			// Cheerleading pacman
-			DrawDecal(olc::vi2d(2, 0), currCheerleader);
-			DrawString(tileToScreen(2, 0), isOldschool ? strCheerSon[currCheerString] : strCheerDad[currCheerString]);
+			DrawDecal(currLevel->vPos + olc::vi2d(0, -iTileSize - 4), currCheerleader);
+			DrawString(currLevel->vPos + olc::vi2d(iTileSize * 1.5f, -iTileSize - 4), isOldschool ? strCheerSon[currCheerString] : strCheerDad[currCheerString]);
 
 			// Info
-			int y = currLevel->height * iTileSize + currLevel->vPos.y;
+			int x = currLevel->width  * iTileSize + currLevel->vPos.x + iTileSize / 2;
+			int y = currLevel->height * iTileSize + currLevel->vPos.y + iTileSize / 2;
+			olc::vi2d vTime, vScore, vLives;
+			olc::vi2d vChainTime, vChainText, vChain;
+			if (x > ScreenWidth() / 1.5f) // draw things down
+			{
+				vTime =  { currLevel->vPos.x, y +  0 };
+				vScore = { currLevel->vPos.x, y + 10 };
+				vLives = { currLevel->vPos.x, y + 20 };
+				vChainTime = { currLevel->vPos.x, y + 40 };
+				vChainText = { currLevel->vPos.x, y + 50 };
+				vChain = { currLevel->vPos.x + 7 * iTileSize, y + 50 }; // 7 is the length of "chain: "
+			}
+			else // draw things on the side
+			{
+				vTime =  { x, currLevel->vPos.y + 0  };
+				vScore = { x, currLevel->vPos.y + 10 };
+				vLives = { x, currLevel->vPos.y + 20 };
+				vChainTime = { x, y - 30 };
+				vChainText = { x, y - 20 };
+				vChain =	 { x, y - 10 };
+			}
 			int livesColor = std::clamp(lives * 150, 0, 255);
-			DrawString({ 0, y + 1 }, "Time:  " + std::to_string((int)time));
-			DrawString({ 0, y + 11 }, "Score: " + std::to_string(score));
-			DrawString({ 0, y + 21 }, "Lives: " + std::to_string(lives), olc::Pixel(255, livesColor, livesColor));
+			int chainColor = std::clamp(255 - int(pow(log2(chain + 1), 2)), 0, 255);
+			DrawString(vTime, "Time:  " + std::to_string((int)time));
+			DrawString(vScore, "Score: " + std::to_string(score));
+			DrawString(vLives, "Lives: " + std::to_string(lives), olc::Pixel(255, livesColor, livesColor));
 			if (!isOldschool)
 			{
-				int chainColor = std::clamp(255 - int(pow(log2(chain + 1), 2)), 0, 255);
-				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<iChainLength>(chain).to_string(), olc::Pixel(chainColor, 255, chainColor));
-				DrawString({ 0, y + 41 }, "Chain-Time: " + std::to_string(chainCountDown).substr(0, 4));
+				DrawString(vChainTime, "Chain-Time: " + std::to_string(chainCountDown).substr(0, 4));
+				DrawString(vChainText, "Chain: ", olc::WHITE);
+				DrawString(vChain, std::bitset<iChainLength>(chain).to_string(), olc::Pixel(chainColor, 255, chainColor));
 			}
 
 			// debug tile
@@ -544,12 +576,13 @@ namespace pm
 			std::vector<int> v;
 			switch (se)
 			{
-			case SoundEffect::VICTORY: v = aWah;   break;
-			case SoundEffect::YUMMY:   v = aYum;   break;
-			case SoundEffect::PAC:     v = aPac;   break;
-			case SoundEffect::FART:    v = aFart;  break;
-			case SoundEffect::GHOST:   v = aBlbl;  break;
-			case SoundEffect::CLICK:   v = aClick; break;
+			case SoundEffect::VICTORY:		  v = aWah;   break;
+			case SoundEffect::YUMMY:		  v = aYum;   break;
+			case SoundEffect::PAC:		      v = aPac;   break;
+			case SoundEffect::FART:			  v = aFart;  break;
+			case SoundEffect::GHOST_EAT_ME:   v = aBlbl;  break;
+			case SoundEffect::GHOST_EATEN:    v = aNya;   break;
+			case SoundEffect::CLICK:	      v = aClick; break;
 			default: return;
 			}
 			olc::SOUND::PlaySample(v[rand() % v.size()]);

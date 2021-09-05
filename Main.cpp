@@ -3,7 +3,7 @@
 int main()
 {
 	pm::Game game;
-	if (game.Construct(296, 212, 4, 4))
+	if (game.Construct(320, 240, 4, 4))
 		game.Start();
 	return 0;
 }

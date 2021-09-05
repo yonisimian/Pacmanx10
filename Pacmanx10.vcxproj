@@ -157,6 +157,9 @@
     <Media Include="Assets\Sound\game_over.wav" />
     <Media Include="Assets\Sound\level_music.mp3" />
     <Media Include="Assets\Sound\main_menu.wav" />
+    <Media Include="Assets\Sound\nya_01.wav" />
+    <Media Include="Assets\Sound\nya_02.wav" />
+    <Media Include="Assets\Sound\nya_03.wav" />
     <Media Include="Assets\Sound\pac_01.wav" />
     <Media Include="Assets\Sound\pac_02.wav" />
     <Media Include="Assets\Sound\pac_03.wav" />

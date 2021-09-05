@@ -224,7 +224,7 @@ namespace pm
 
 			// Game
 			getLevels();
-			if (!loadLevel(3)) return false;
+			if (!loadLevel(0)) return false;
 
 			if (!olc::SOUND::InitialiseAudio()) return false;
 			olc::SOUND::PlaySample(aBG, true);
@@ -243,7 +243,7 @@ namespace pm
 
 		bool OnUserUpdate(float fElapsedTime) override
 		{
-			Clear(olc::BLACK);
+			Clear(olc::DARK_GREEN);
 
 			switch (currState)
 			{

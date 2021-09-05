@@ -4,6 +4,7 @@
 #define BOARD_MAP std::map<olc::vi2d, std::shared_ptr<GameObject>, std::function<bool(const olc::vi2d& v1, const olc::vi2d& v2)>>
 #define MAKE_BOARD BOARD_MAP([&](auto v1, auto v2) { return v1.y == v2.y ? v1.x < v2.x : v1.y < v2.y; })
 #define MAKE_TILE(game, type, image) (std::make_pair(pos, std::shared_ptr<GameObject>(new type(game, tileToScreen(pos), isOldschool, image))))
+#define MAKE_GHOST(type) std::shared_ptr<Ghost>(new type(game, tileToScreen(pos), width, height, board, isOldschool, decals[SPRITE_GHOST]))
 
 #define PATH_DATA "./Assets/data.txt"
 #define PATH_SOUND "./Assets/Sound/"
@@ -39,11 +40,12 @@ namespace pm
 	static const char SYMBOL_DOT    =  '.';
 	static const char SYMBOL_POWERUP = 'o';
 
-	static const std::array<std::string, 3> SPRITE_NAMES = { "wall2.png" , "pacman.png", "mini pacman2.png"};
+	static const std::array<std::string, 4> SPRITE_NAMES = { "wall2.png" , "pacman2.png", "mini pacman2.png", "ghost2.png"};
 	enum SpritesNames {
 		SPRITE_WALL = 0,
 		SPRITE_PACMAN,
-		SPRITE_MINI_PACMAN
+		SPRITE_MINI_PACMAN,
+		SPRITE_GHOST
 	};
 
 	enum class Dir {
@@ -378,9 +380,10 @@ namespace pm
 		{
 			switch (currState)
 			{
-			case GhostState::STRONG: game.DrawRect(vPos + offset, { iTileSize, iTileSize }, color);			break;
-			case GhostState::WEAK:	 game.DrawRect(vPos + offset, { iTileSize, iTileSize }, olc::DARK_BLUE); break;
-				//case GhostState::EATEN:  game.DrawRect(vPos, { iTileSize, iTileSize }, olc::DARK_BLUE); break;
+			//case GhostState::STRONG: game.DrawRect(vPos + offset, { iTileSize, iTileSize }, color);			break;
+			case GhostState::STRONG: game.DrawDecal(vPos + offset, image, { 1.0f, 1.0f }, color);			break;
+			case GhostState::WEAK:	 game.DrawDecal(vPos + offset, image, { 1.0f, 1.0f }, olc::DARK_BLUE); break;
+			case GhostState::EATEN:  game.DrawDecal(vPos + offset, image, { 1.0f, 1.0f }, olc::Pixel(0, 0, 128, 50)); break;
 			}
 		}
 		void makeWeak()
@@ -663,16 +666,18 @@ namespace pm
 
 	class Pacman : public MoveableObject
 	{
+		bool wasRight;
 	public:
 		Pacman(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, const int iLevelWidth, const int iLevelHeight, bool isOldschool = true, olc::Decal * image = nullptr) :
-			MoveableObject(game, Kind::PLAYER, vInitPos, image, isOldschool, int(iPacmanSpeed), iLevelWidth, iLevelHeight)
+			MoveableObject(game, Kind::PLAYER, vInitPos, image, isOldschool, int(iPacmanSpeed), iLevelWidth, iLevelHeight),
+			wasRight(true)
 		{}
 		void getInput(olc::PixelGameEngine& game)
 		{
 			if (game.GetKey(olc::UP).bPressed)		nextDir = Dir::UP;
 			if (game.GetKey(olc::DOWN).bPressed)	nextDir = Dir::DOWN;
-			if (game.GetKey(olc::LEFT).bPressed)	nextDir = Dir::LEFT;
-			if (game.GetKey(olc::RIGHT).bPressed)	nextDir = Dir::RIGHT;
+			if (game.GetKey(olc::LEFT).bPressed)  { nextDir = Dir::LEFT;  wasRight = false; }
+			if (game.GetKey(olc::RIGHT).bPressed) { nextDir = Dir::RIGHT; wasRight = true;  }
 		}
 		void update(float fElapsedTime) { stepForward(fElapsedTime); }
 		void collideWithWall() override { stepBack(); }
@@ -680,16 +685,22 @@ namespace pm
 		{
 			olc::Pixel color = isOldschool ? olc::YELLOW : olc::YELLOW;
 			
-			game.DrawRotatedDecal(olc::vi2d(vPos) + offset + vHalfTile, image, 0.0f, vHalfTile);
+			olc::vf2d vLeftTop = olc::vi2d(vPos) + offset;
+			switch (currDir)
+			{
+			case Dir::UP:    wasRight ? game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(0,1), vLeftTop + vTile, vLeftTop + tileToScreen(1,0), vLeftTop }) : game.DrawWarpedDecal(image, { vLeftTop + vTile, vLeftTop + tileToScreen(0,1), vLeftTop, vLeftTop + tileToScreen(1,0) });; break;
+			case Dir::DOWN:  wasRight ? game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(1,0), vLeftTop, vLeftTop + tileToScreen(0,1), vLeftTop + vTile }) : game.DrawWarpedDecal(image, { vLeftTop, vLeftTop + tileToScreen(1,0), vLeftTop + vTile, vLeftTop + tileToScreen(0,1) }); break;
+			case Dir::LEFT:  game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(1,0), vLeftTop + vTile, vLeftTop + tileToScreen(0,1), vLeftTop }); break;
+			case Dir::RIGHT: game.DrawWarpedDecal(image, { vLeftTop, vLeftTop + tileToScreen(0,1), vLeftTop + vTile, vLeftTop + tileToScreen(1,0) }); break;
+			}
+			// yes I know it's a lame solution, It's 4am don't yell at me
 
-			//game.DrawLine(vPos.x + offset.x + 3, vPos.y + offset.y + 0, vPos.x + offset.x + 5, vPos.y + offset.y + 0, color);
-			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 1, vPos.x + offset.x + 7, vPos.y + offset.y + 1, color);
-			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 2, vPos.x + offset.x + 6, vPos.y + offset.y + 2, color);
-			//game.DrawLine(vPos.x + offset.x + 0, vPos.y + offset.y + 3, vPos.x + offset.x + 3, vPos.y + offset.y + 3, color);
-			//game.DrawLine(vPos.x + offset.x + 0, vPos.y + offset.y + 4, vPos.x + offset.x + 3, vPos.y + offset.y + 4, color);
-			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 5, vPos.x + offset.x + 6, vPos.y + offset.y + 5, color);
-			//game.DrawLine(vPos.x + offset.x + 1, vPos.y + offset.y + 6, vPos.x + offset.x + 7, vPos.y + offset.y + 6, color);
-			//game.DrawLine(vPos.x + offset.x + 3, vPos.y + offset.y + 7, vPos.x + offset.x + 5, vPos.y + offset.y + 7, color);
+			//game.DrawWarpedDecal(image, { vLeftTop, vLeftTop + tileToScreen(0,1), vLeftTop + vTile, vLeftTop + tileToScreen(1,0) }); // right
+			//game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(0,1), vLeftTop + vTile, vLeftTop + tileToScreen(1,0), vLeftTop }); // up-right
+			//game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(1,0), vLeftTop, vLeftTop + tileToScreen(0,1), vLeftTop + vTile}); // down-right
+			//game.DrawWarpedDecal(image, { vLeftTop, vLeftTop + tileToScreen(1,0), vLeftTop + vTile, vLeftTop + tileToScreen(0,1) }); // down-left
+			//game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(1,0), vLeftTop + vTile, vLeftTop + tileToScreen(0,1), vLeftTop }); // left
+			//game.DrawWarpedDecal(image, { vLeftTop + vTile, vLeftTop + tileToScreen(0,1), vLeftTop, vLeftTop + tileToScreen(1,0) }); // up-left
 		}
 	};
 
@@ -781,10 +792,10 @@ namespace pm
 				player = std::shared_ptr<Pacman>(new Pacman(game, tileToScreen(pos), width, height, isOldschool, decals[isOldschool ? SPRITE_PACMAN : SPRITE_MINI_PACMAN]));
 				board.emplace(std::make_pair(pos, player));
 				break;
-			case Kind::GHOST_B:  ghost = std::shared_ptr<Ghost>(new BlueGhost  (game, tileToScreen(pos), width, height, board, isOldschool)); break;
-			case Kind::GHOST_R:  ghost = std::shared_ptr<Ghost>(new RedGhost   (game, tileToScreen(pos), width, height, board, isOldschool)); break;
-			case Kind::GHOST_Y:  ghost = std::shared_ptr<Ghost>(new YellowGhost(game, tileToScreen(pos), width, height, board, isOldschool)); break;
-			case Kind::GHOST_G:  ghost = std::shared_ptr<Ghost>(new GreenGhost (game, tileToScreen(pos), width, height, board, isOldschool)); break;
+			case Kind::GHOST_B:  ghost = MAKE_GHOST(BlueGhost);   break;
+			case Kind::GHOST_R:  ghost = MAKE_GHOST(RedGhost);    break;
+			case Kind::GHOST_Y:  ghost = MAKE_GHOST(YellowGhost); break;
+			case Kind::GHOST_G:  ghost = MAKE_GHOST(GreenGhost);  break;
 			case Kind::DOT:      board.emplace(MAKE_TILE(game, Dot, nullptr));  ++iDots;   break;
 			case Kind::WALL:     board.emplace(MAKE_TILE(game, Wall, decals[SPRITE_WALL]));    break;  break;
 			case Kind::POWER_UP: {std::shared_ptr<PowerUp> pu(new PowerUp(game, tileToScreen(pos), isOldschool)); board.emplace(std::make_pair(pos, pu)); powerUps.push_back(pu);  break; }

@@ -187,10 +187,11 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Assets\Graphics\bg.png" />
+    <Image Include="Assets\Graphics\ghost.png" />
     <Image Include="Assets\Graphics\mini pacman.png" />
     <Image Include="Assets\Graphics\pacman.png" />
-    <Image Include="Assets\Graphics\wall.png" />
-    <Image Include="Assets\Graphics\wall2.png" />
+    <Image Include="Assets\Graphics\tv.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

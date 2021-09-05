@@ -94,15 +94,16 @@ namespace pm
 		// graphics
 		std::vector<olc::Decal*> decals;
 		olc::Decal* decalTV;
-		
+		olc::Sprite* spriteBG;
+
 	public:
 		Game() :
-			title_game (*this, tileToScreen(6, 4), "Pacmanx10"),
+			title_game (*this, olc::vi2d((ScreenWidth() - 9 * iTileSize) / 2, 36), "Pacmanx10"),
 			bQuit(false),
 			iCurrLevel(0),
 			isOldschool(true),
 			isTutorial(true),
-			score(9999999),
+			score(0),
 			time(0.0f),
 			timeCountDown(COUNT_DOWN_TIME),
 			chain(0),
@@ -116,7 +117,8 @@ namespace pm
 			aGameover(olc::SOUND::LoadAudioSample(PATH_SOUND "game_over.wav")),
 			aLevel(olc::SOUND::LoadAudioSample(PATH_SOUND "level_music.wav")),
 			aScoreUp(olc::SOUND::LoadAudioSample(PATH_SOUND "score_up.wav")),
-			decalTV(nullptr)
+			decalTV(nullptr),
+			spriteBG(nullptr)
 		{
 			sAppName = "Pacmanx10";
 		}
@@ -165,7 +167,7 @@ namespace pm
 		void loadNextLevel()
 		{
 			if (++iCurrLevel == levelDatas.size())
-				iCurrLevel = 0;
+				iCurrLevel = (isTutorial ? 0 : 5);
 			resetCurrLevel();
 		}
 
@@ -195,7 +197,7 @@ namespace pm
 			timeCountDown = COUNT_DOWN_TIME;
 			cheerCountDown = CHEER_DOWN_TIME;
 
-			currLevel.reset(new Level(*this, decals, levelDatas[iCurrLevel], isOldschool, tileToScreen(5, 5)));
+			currLevel.reset(new Level(*this, decals, levelDatas[iCurrLevel], isOldschool, olc::vi2d(4.5f * iTileSize, 5.5f * iTileSize)));
 			currCheerleader = isOldschool ? decals[SPRITE_MINI_PACMAN] : decals[SPRITE_PACMAN];
 		}
 
@@ -206,23 +208,25 @@ namespace pm
 			// Graphics
 			for (int i = 0; i < SPRITE_NAMES.size(); ++i)
 				decals.push_back(new olc::Decal(new olc::Sprite(PATH_GRAPHICS + SPRITE_NAMES[i])));
-			decalTV = new olc::Decal(new olc::Sprite(PATH_GRAPHICS "tv3.png"));
+			decalTV = new olc::Decal(new olc::Sprite(PATH_GRAPHICS "tv.png"));
+			spriteBG = new olc::Sprite(PATH_GRAPHICS "bg.png");
 
 			// UI
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 5),  "Play", [this] { loadLevel(isTutorial ? 0 : 5); olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 11), "About", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_ABOUT; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 13), "Highscores", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_HIGHSCORES; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 15), "Quit", [this] { playEffect(SoundEffect::FART); bQuit = true; }));
+			int x = (ScreenWidth() - 17 * iTileSize) / 2;
+			int y = 8 * iTileSize;
+			mm_main_buttons.push_back(new Button(*this, olc::vi2d(x, y + 0 * iTileSize), "Play",  [this] { loadLevel(isTutorial ? 0 : 5); olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
+			mm_main_buttons.push_back(new Button(*this, olc::vi2d(x, y + 6 * iTileSize), "About", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_ABOUT; }));
+			mm_main_buttons.push_back(new Button(*this, olc::vi2d(x, y + 8 * iTileSize), "Highscores", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_HIGHSCORES; }));
+			mm_main_buttons.push_back(new Button(*this, olc::vi2d(x, y + 10 * iTileSize), "Quit", [this] { playEffect(SoundEffect::FART); bQuit = true; }));
+			mm_main_switches.push_back(new Switch(*this, olc::vi2d(x, y + 2 * iTileSize), "Classic", "Modern ", [this] { (isOldschool = !isOldschool) ? playEffect(SoundEffect::FART) : playEffect(SoundEffect::CLICK);}, false));
+			mm_main_switches.push_back(new Switch(*this, olc::vi2d(x, y + 4 * iTileSize), "", "Tutorial", [this] { (isTutorial = !isTutorial) ? playEffect(SoundEffect::CLICK) : playEffect(SoundEffect::FART); }));
 
-			mm_main_switches.push_back(new Switch(*this, tileToScreen(10, 7), "Classic", "Modern ", [this] { (isOldschool = !isOldschool) ? playEffect(SoundEffect::FART) : playEffect(SoundEffect::CLICK);}, false));
-			mm_main_switches.push_back(new Switch(*this, tileToScreen(10, 9), "", "Tutorial", [this] { (isTutorial = !isTutorial) ? playEffect(SoundEffect::CLICK) : playEffect(SoundEffect::FART); }));
+			mm_abut_buttons.push_back(new Button(*this, olc::vi2d(x, y + 12 * iTileSize), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
+			mm_abut_texts.push_back(new TextBox(*this, olc::vi2d(x, y + 1 * iTileSize), "Explanation stuff,\n\nI ain't good at it\n\n        UWU"));
+			mm_abut_texts.push_back(new TextBox(*this, olc::vi2d(x, y + 8 * iTileSize), " You're #1 David! "));
 
-			mm_abut_buttons.push_back(new Button(*this, tileToScreen(10, 15), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
-			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 5), "Explanation stuff,\n\nI ain't good at it\n\n        UWU"));
-			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 12), "We love you David!"));
-
-			mm_high_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
-			mm_high_texts.push_back(new TextBox(*this, tileToScreen(7, 5), "\n\n\n  Coming Soon!  \n\n\n"));
+			mm_high_buttons.push_back(new Button(*this, olc::vi2d(x, y + 12 * iTileSize), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
+			mm_high_texts.push_back(new TextBox(*this, olc::vi2d(x, y + 1 * iTileSize), "\n\n\n  Coming Soon!  \n\n\n"));
 
 			// Audio
 			for (int i = 1; i <= 4; ++i) aPac  .push_back(olc::SOUND::LoadAudioSample(PATH_SOUND "pac_0"    + std::to_string(i) + ".wav"));
@@ -254,7 +258,8 @@ namespace pm
 		bool OnUserUpdate(float fElapsedTime) override
 		{
 			Clear(olc::BLACK);
-			FillRect(tileToScreen(1, 1), olc::vf2d(ScreenWidth() - 20, ScreenHeight() - 20), olc::DARK_GREEN);
+			DrawSprite(tileToScreen(1, 1), spriteBG);
+			//FillRect(tileToScreen(1, 1), olc::vf2d(ScreenWidth() - 20, ScreenHeight() - 20), olc::DARK_GREEN);
 
 			switch (currState)
 			{
@@ -300,9 +305,7 @@ namespace pm
 
 					drawGame();
 
-					FillRectDecal(currLevel->vPos, tileToScreen(currLevel->width, currLevel->height) + olc::vi2d(1, 1), olc::Pixel(0, 0, 0, 150));
-
-					DrawStringDecal(tileToScreen(currLevel->width / 2 - 1, currLevel->height / 2 - 1), std::to_string(int(timeCountDown) + 1));
+					coverScreen(std::to_string(int(timeCountDown) + 1));
 
 					break;
 				}
@@ -317,11 +320,11 @@ namespace pm
 						nextState = GameState::GAME_PAUSE;
 						break;
 					}
-					if (GetKey(olc::E).bPressed)
-					{
-						nextState = GameState::LEVEL_EDITOR;
-						break;
-					}
+					//if (GetKey(olc::E).bPressed)
+					//{
+					//	nextState = GameState::LEVEL_EDITOR;
+					//	break;
+					//}
 
 					// ============== UPDATE ==============
 					time += fElapsedTime;
@@ -443,7 +446,7 @@ namespace pm
 				}
 				case GameState::GAME_PAUSE:
 				{
-					if (GetKey(olc::ESCAPE).bPressed)
+					if (GetKey(olc::ESCAPE).bPressed || GetKey(olc::P).bPressed)
 					{
 						olc::SOUND::StopSample(aBG);
 						olc::SOUND::PlaySample(aLevel);
@@ -452,9 +455,7 @@ namespace pm
 
 					drawGame();
 
-					FillRectDecal(currLevel->vPos, tileToScreen(currLevel->width, currLevel->height) + olc::vi2d(1, 1), olc::Pixel(0, 0, 0, 150));
-
-					DrawStringDecal(tileToScreen(currLevel->width / 2 - 3, currLevel->height / 2 - 1), "PAUSE!");
+					coverScreen("PAUSE!");
 					break;
 				}
 				case GameState::GAME_WIN:
@@ -570,6 +571,12 @@ namespace pm
 
 			// debug tile
 			// DrawRect(player->getPos(), { iTileSize, iTileSize }, olc::YELLOW);
+		}
+		void coverScreen(std::string&& message)
+		{
+			FillRectDecal(currLevel->vPos, tileToScreen(currLevel->width, currLevel->height), olc::Pixel(0, 0, 0, 150));
+			DrawStringDecal(currLevel->vPos + tileToScreen((currLevel->width - message.length()) / 2, currLevel->height / 2), message);
+			//DrawRect(currLevel->vPos, tileToScreen(currLevel->width, currLevel->height), olc::BLACK);
 		}
 		void playEffect(const SoundEffect se)
 		{

@@ -125,16 +125,19 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Assets\Graphics\wall.png">
+    <Image Include="Assets\Graphics\bg.png">
       <Filter>Resource Files\Graphics</Filter>
     </Image>
-    <Image Include="Assets\Graphics\wall2.png">
+    <Image Include="Assets\Graphics\ghost.png">
       <Filter>Resource Files\Graphics</Filter>
     </Image>
     <Image Include="Assets\Graphics\mini pacman.png">
       <Filter>Resource Files\Graphics</Filter>
     </Image>
     <Image Include="Assets\Graphics\pacman.png">
+      <Filter>Resource Files\Graphics</Filter>
+    </Image>
+    <Image Include="Assets\Graphics\tv.png">
       <Filter>Resource Files\Graphics</Filter>
     </Image>
   </ItemGroup>

@@ -40,10 +40,9 @@ namespace pm
 	static const char SYMBOL_DOT    =  '.';
 	static const char SYMBOL_POWERUP = 'o';
 
-	static const std::array<std::string, 4> SPRITE_NAMES = { "wall2.png" , "pacman2.png", "mini pacman2.png", "ghost2.png"};
+	static const std::array<std::string, 4> SPRITE_NAMES = { "pacman.png", "mini pacman.png", "ghost.png"};
 	enum SpritesNames {
-		SPRITE_WALL = 0,
-		SPRITE_PACMAN,
+		SPRITE_PACMAN = 0,
 		SPRITE_MINI_PACMAN,
 		SPRITE_GHOST
 	};
@@ -398,6 +397,7 @@ namespace pm
 		}
 		void makeEaten()
 		{
+			iSpeed = iGhostSpeed * 1.5f;
 			vCurrTarget = &vInitPos;
 			currState = GhostState::EATEN;
 		}
@@ -414,6 +414,7 @@ namespace pm
 			fWeakTime -= fElapsedTime;
 			if (fWeakTime <= 0)
 			{
+				iSpeed = iGhostSpeed;
 				vCurrTarget = vTargetPos;
 				currState = GhostState::STRONG;
 			}
@@ -806,7 +807,7 @@ namespace pm
 			case Kind::GHOST_Y:  ghost = MAKE_GHOST(YellowGhost); break;
 			case Kind::GHOST_G:  ghost = MAKE_GHOST(GreenGhost);  break;
 			case Kind::DOT:      board.emplace(MAKE_TILE(game, Dot, nullptr));  ++iDots;   break;
-			case Kind::WALL:     board.emplace(MAKE_TILE(game, Wall, decals[SPRITE_WALL]));    break;  break;
+			case Kind::WALL:     board.emplace(MAKE_TILE(game, Wall/*, decals[SPRITE_WALL]*/, nullptr));    break;  break;
 			case Kind::POWER_UP: {std::shared_ptr<PowerUp> pu(new PowerUp(game, tileToScreen(pos), isOldschool)); board.emplace(std::make_pair(pos, pu)); powerUps.push_back(pu);  break; }
 			}
 

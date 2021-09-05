@@ -224,7 +224,7 @@ namespace pm
 
 			// Game
 			getLevels();
-			if (!loadLevel(0)) return false;
+			if (!loadLevel(4)) return false;
 
 			if (!olc::SOUND::InitialiseAudio()) return false;
 			olc::SOUND::PlaySample(aBG, true);

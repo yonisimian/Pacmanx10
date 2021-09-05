@@ -174,7 +174,7 @@ namespace pm
 	{
 		olc::PixelGameEngine& game;
 		Kind kind;
-		olc::vi2d vInitPos;
+		olc::vf2d vInitPos;
 		olc::Decal* image;
 		bool isOldschool; // true for isOldschool gameplay, false for futuristic gameplay
 
@@ -343,6 +343,7 @@ namespace pm
 		GhostState currState;
 		float fWeakTime;
 		olc::vf2d* vTargetPos;
+		olc::vf2d* vCurrTarget;
 		BOARD_MAP& board;
 
 		/* a map of distances from target.
@@ -357,6 +358,7 @@ namespace pm
 			currState(GhostState::STRONG),
 			fWeakTime(WEAK_TIME),
 			vTargetPos(vTargetPos),
+			vCurrTarget(vTargetPos),
 			board(board),
 			map(new int[levelWidth * levelHeight])
 		{}
@@ -393,10 +395,11 @@ namespace pm
 		}
 		void makeEaten()
 		{
+			vCurrTarget = &vInitPos;
 			currState = GhostState::EATEN;
 		}
 		GhostState getState() const { return currState; }
-		void updateTarget(olc::vf2d* vTarget) { vTargetPos = vTarget; }
+		void updateTarget(olc::vf2d* vTarget) { vTargetPos = vTarget; vCurrTarget = vTargetPos; }
 	private:
 		virtual void updateStrong(float fElapsedTime)
 		{
@@ -407,13 +410,16 @@ namespace pm
 		{
 			fWeakTime -= fElapsedTime;
 			if (fWeakTime <= 0)
+			{
+				vCurrTarget = vTargetPos;
 				currState = GhostState::STRONG;
+			}
 		}
 		void updateEaten(float fElapsedTime)
 		{
-			fWeakTime -= fElapsedTime;
-			if (fWeakTime <= 0)
-				currState = GhostState::STRONG;
+			updateWeak(fElapsedTime);
+			smartChase();
+			stepForward(fElapsedTime);
 		}
 	protected:
 		// update nextDir to chase pacman smartly
@@ -432,7 +438,7 @@ namespace pm
 				}
 
 			// fill the map with numbers
-			olc::vi2d vTargetTile = screenToTile(*vTargetPos);
+			olc::vi2d vTargetTile = screenToTile(*vCurrTarget);
 			olc::vi2d vMyTile = screenToTile(vPos);
 			map[vTargetTile.x + iLevelWidth * vTargetTile.y] = 0;
 			map[vMyTile.x + iLevelWidth * vMyTile.y] = -2;
@@ -473,13 +479,13 @@ namespace pm
 		}
 		void dumbChase1()
 		{
-			olc::vi2d targetTile = screenToTile(*vTargetPos);
+			olc::vi2d targetTile = screenToTile(*vCurrTarget);
 			olc::vi2d myTile = screenToTile(vPos);
 			nextDir = (targetTile.x == myTile.x ? (targetTile.y > myTile.y ? Dir::DOWN : Dir::UP) : (targetTile.x > myTile.x ? Dir::RIGHT : Dir::LEFT));
 		}
 		void dumbChase2()
 		{
-			olc::vi2d targetTile = screenToTile(*vTargetPos);
+			olc::vi2d targetTile = screenToTile(*vCurrTarget);
 			olc::vi2d myTile = screenToTile(vPos);
 			nextDir = (targetTile.y == myTile.y ? (targetTile.x > myTile.x ? Dir::RIGHT : Dir::LEFT) : (targetTile.y > myTile.y ? Dir::DOWN : Dir::UP));
 		}
@@ -697,7 +703,7 @@ namespace pm
 
 			//game.DrawWarpedDecal(image, { vLeftTop, vLeftTop + tileToScreen(0,1), vLeftTop + vTile, vLeftTop + tileToScreen(1,0) }); // right
 			//game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(0,1), vLeftTop + vTile, vLeftTop + tileToScreen(1,0), vLeftTop }); // up-right
-			//game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(1,0), vLeftTop, vLeftTop + tileToScreen(0,1), vLeftTop + vTile}); // down-right
+			//game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(1,0), vLeftTop, vLeftTop + tileToScreen(0,1), vLeftTop + vTile }); // down-right
 			//game.DrawWarpedDecal(image, { vLeftTop, vLeftTop + tileToScreen(1,0), vLeftTop + vTile, vLeftTop + tileToScreen(0,1) }); // down-left
 			//game.DrawWarpedDecal(image, { vLeftTop + tileToScreen(1,0), vLeftTop + vTile, vLeftTop + tileToScreen(0,1), vLeftTop }); // left
 			//game.DrawWarpedDecal(image, { vLeftTop + vTile, vLeftTop + tileToScreen(0,1), vLeftTop, vLeftTop + tileToScreen(1,0) }); // up-left

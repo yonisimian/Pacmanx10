@@ -202,10 +202,7 @@ namespace pm
 		{
 			// Graphics
 			for (int i = 0; i < SPRITE_NAMES.size(); ++i)
-			{
 				decals.push_back(new olc::Decal(new olc::Sprite(PATH_GRAPHICS + SPRITE_NAMES[i])));
-			}
-
 
 			// UI
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 5),  "Play", [this] { loadLevel(isTutorial ? 0 : 5); olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));

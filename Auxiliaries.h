@@ -925,7 +925,7 @@ namespace pm
 		bool isClickable;
 		Button(olc::PixelGameEngine& game, olc::vf2d pos, std::string text, std::function<void()> fncOnClick = [] {}, bool isClickable = true) :
 			UI(game, pos),
-			vSize(tileToScreen(text.length(), 1)),
+			vSize(tileToScreen(text.length(), 1) + vHalfTile),
 			text(text),
 			iText(nullptr),
 			fncOnClick(fncOnClick),
@@ -933,7 +933,7 @@ namespace pm
 		{}
 		Button(olc::PixelGameEngine& game, olc::vf2d pos, int* text, std::function<void()> fncOnClick = [] {}, bool isClickable = true) :
 			UI(game, pos),
-			vSize(tileToScreen(std::to_string(*text).length(), 1)),
+			vSize(tileToScreen(std::to_string(*text).length(), 1) + vHalfTile),
 			text(std::to_string(*text)),
 			iText(text),
 			fncOnClick(fncOnClick),
@@ -949,7 +949,8 @@ namespace pm
 		{
 			game.FillRect(vPos, vSize, olc::GREY);
 			game.DrawRect(vPos, vSize, olc::Pixel(200, 100, 0));
-			game.DrawString(olc::vi2d(vPos.x + 1, vPos.y + vSize.y / 2 - 3), iText == nullptr ? text : std::to_string(*iText), olc::BLACK, 1);
+
+			game.DrawString(olc::vi2d(vPos.x + iTileSize / 2 - 1, vPos.y + vSize.y / 2 - 3), iText == nullptr ? text : std::to_string(*iText), olc::BLACK);
 			if (isClickable && isPointInRect(game.GetMousePos(), vPos, vSize))
 				game.FillRectDecal(vPos, vSize, olc::Pixel(255, 170, 0, 80));
 		}
@@ -957,22 +958,18 @@ namespace pm
 
 	class Switch : public UI
 	{
-		// vPos is vSwitchPos
-		olc::vf2d vSwitchSize;
-		olc::vf2d vTextSize;
-		olc::vf2d vTextPos;
+		olc::vf2d vSize;
+		Button btn;
 		std::string textOff;
 		std::string textOn;
 		std::function<void()> fncOnClick;
 		bool isOn;
-		bool isClicked() { return game.GetMouse(0).bPressed && isPointInRect(game.GetMousePos(), vPos, vSwitchSize); }
 
 	public:
 		Switch(olc::PixelGameEngine& game, olc::vf2d pos, std::string textOff, std::string textOn, std::function<void()> fncOnClick = [] {}, bool isOn = true) :
 			UI(game, pos),
-			vSwitchSize(tileToScreen(2, 1)),
-			vTextSize(tileToScreen(std::max(textOff.length(), textOn.length()), 1)),
-			vTextPos(vPos + olc::vi2d(iTileSize / 2, 0) + tileToScreen(2, 0)),
+			vSize(tileToScreen(2, 1) + vHalfTile),
+			btn(game, vPos + tileToScreen(3, 0), isOn ? textOn : textOff, [] {}, false),
 			textOff(textOff),
 			textOn(textOn),
 			fncOnClick(fncOnClick),
@@ -980,25 +977,22 @@ namespace pm
 		{}
 		void update()
 		{
-			if (isClicked())
+			if (game.GetMouse(0).bPressed && isPointInRect(game.GetMousePos(), vPos, vSize))
 			{
-				isOn = !isOn;
+				btn.text = (isOn = !isOn) ? textOn : textOff;
 				fncOnClick();
 			}
 		}
 		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
 			// switch
-			game.FillRect(vPos, vSwitchSize, isOn ? olc::GREEN : olc::RED);
-			game.DrawRect(vPos, vSwitchSize, olc::Pixel(200, 100, 0));
-			game.FillCircle(vPos + vHalfTile + (isOn ? tileToScreen(1,0) : olc::vi2d(0,0)), iTileSize / 2.0f, olc::WHITE);
+			game.FillRect(vPos, vSize, isOn ? olc::GREEN : olc::RED);
+			game.DrawRect(vPos, vSize, olc::Pixel(200, 100, 0));
+			game.FillRect(vPos + olc::vi2d(isOn ? iTileSize * 1.5f : 0, 0), olc::vi2d(iTileSize, vSize.y), olc::WHITE);
+			game.DrawRect(vPos + olc::vi2d(isOn ? iTileSize * 1.5f : 0, 0), olc::vi2d(iTileSize, vSize.y), olc::DARK_GREY);
 
 			// text
-			game.FillRect(vTextPos, vTextSize, olc::GREY);
-			game.DrawRect(vTextPos, vTextSize, olc::Pixel(200, 100, 0));
-			game.DrawString(olc::vi2d(vTextPos.x + 1, vTextPos.y + vTextSize.y / 2 - 3), isOn ? textOn : textOff, olc::BLACK);
-			if (isPointInRect(game.GetMousePos(), vPos, vSwitchSize))
-				game.FillRectDecal(vPos, vSwitchSize, olc::Pixel(255, 170, 0, 80));
+			btn.draw();
 		}
 	};
 

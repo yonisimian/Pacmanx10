@@ -98,7 +98,7 @@ namespace pm
 			title_game (*this, tileToScreen(6, 1), "Pacmanx10"),
 			bQuit(false),
 			iCurrLevel(0),
-			isOldschool(false),
+			isOldschool(true),
 			isTutorial(true),
 			score(0),
 			time(0.0f),
@@ -208,15 +208,15 @@ namespace pm
 
 
 			// UI
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play", [this] { loadLevel(isTutorial ? 0 : 5); olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(12, 7) + olc::vi2d(iTileSize / 2, 0), "About", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_ABOUT; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 9), "Highscores", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_HIGHSCORES; }));
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Quit", [this] { playEffect(SoundEffect::FART); bQuit = true; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 5),  "Play", [this] { loadLevel(isTutorial ? 0 : 5); olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 11), "About", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_ABOUT; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 13), "Highscores", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_HIGHSCORES; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 15), "Quit", [this] { playEffect(SoundEffect::FART); bQuit = true; }));
 
-			mm_main_switches.push_back(new Switch(*this, tileToScreen(9, 8), "Classic", "Modern", [this] { isOldschool = !isOldschool; }));
-			mm_main_switches.push_back(new Switch(*this, tileToScreen(9, 10), "", "Tutorial", [this] { isTutorial = !isTutorial; }));
+			mm_main_switches.push_back(new Switch(*this, tileToScreen(10, 7), "Classic", "Modern ", [this] { (isOldschool = !isOldschool) ? playEffect(SoundEffect::FART) : playEffect(SoundEffect::CLICK);}, false));
+			mm_main_switches.push_back(new Switch(*this, tileToScreen(10, 9), "", "Tutorial", [this] { (isTutorial = !isTutorial) ? playEffect(SoundEffect::CLICK) : playEffect(SoundEffect::FART); }));
 
-			mm_abut_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
+			mm_abut_buttons.push_back(new Button(*this, tileToScreen(10, 15), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
 			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 5), "Explanation stuff,\n\nI ain't good at it\n\n        UWU"));
 			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 12), "We love you David!"));
 

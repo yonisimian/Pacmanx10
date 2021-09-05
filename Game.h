@@ -36,10 +36,12 @@ namespace pm
 		};
 
 		// =============== menus' stuff
+
 		Title title_game;
 		std::vector<Button*> mm_main_buttons;
 		std::vector<Button*> mm_abut_buttons;
 		std::vector<Button*> mm_high_buttons;
+		std::vector<Switch*> mm_main_switches;
 
 		std::vector<TextBox*> mm_abut_texts;
 		std::vector<TextBox*> mm_high_texts;
@@ -52,6 +54,8 @@ namespace pm
 
 		std::unique_ptr<Level> currLevel;
 		int iCurrLevel;
+		bool isOldschool;
+		bool isTutorial;
 
 		int score;
 		float time;
@@ -94,6 +98,8 @@ namespace pm
 			title_game (*this, tileToScreen(6, 1), "Pacmanx10"),
 			bQuit(false),
 			iCurrLevel(0),
+			isOldschool(false),
+			isTutorial(true),
 			score(0),
 			time(0.0f),
 			timeCountDown(COUNT_DOWN_TIME),
@@ -186,8 +192,8 @@ namespace pm
 			timeCountDown = COUNT_DOWN_TIME;
 			cheerCountDown = CHEER_DOWN_TIME;
 
-			currLevel.reset(new Level(*this, decals, levelDatas[iCurrLevel], false, tileToScreen(0, 1)));
-			currCheerleader = currLevel->isOldschool ? decals[SPRITE_MINI_PACMAN] : decals[SPRITE_PACMAN];
+			currLevel.reset(new Level(*this, decals, levelDatas[iCurrLevel], isOldschool, tileToScreen(0, 1)));
+			currCheerleader = isOldschool ? decals[SPRITE_MINI_PACMAN] : decals[SPRITE_PACMAN];
 		}
 
 #pragma endregion
@@ -202,10 +208,13 @@ namespace pm
 
 
 			// UI
-			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play", [this] { olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
+			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 5), "Play", [this] { loadLevel(isTutorial ? 0 : 5); olc::SOUND::StopSample(aBG); olc::SOUND::PlaySample(aLevel, true); nextState = GameState::GAME_SET; }));
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(12, 7) + olc::vi2d(iTileSize / 2, 0), "About", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_ABOUT; }));
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(10, 9), "Highscores", [this] { playEffect(SoundEffect::CLICK); nextState = GameState::MM_HIGHSCORES; }));
 			mm_main_buttons.push_back(new Button(*this, tileToScreen(13, 11), "Quit", [this] { playEffect(SoundEffect::FART); bQuit = true; }));
+
+			mm_main_switches.push_back(new Switch(*this, tileToScreen(9, 8), "Classic", "Modern", [this] { isOldschool = !isOldschool; }));
+			mm_main_switches.push_back(new Switch(*this, tileToScreen(9, 10), "", "Tutorial", [this] { isTutorial = !isTutorial; }));
 
 			mm_abut_buttons.push_back(new Button(*this, tileToScreen(13, 15), "Back", [this] { playEffect(SoundEffect::FART); nextState = GameState::MM_MAIN; }));
 			mm_abut_texts.push_back(new TextBox(*this, tileToScreen(6, 5), "Explanation stuff,\n\nI ain't good at it\n\n        UWU"));
@@ -224,7 +233,6 @@ namespace pm
 
 			// Game
 			getLevels();
-			if (!loadLevel(4)) return false;
 
 			if (!olc::SOUND::InitialiseAudio()) return false;
 			olc::SOUND::PlaySample(aBG, true);
@@ -249,10 +257,12 @@ namespace pm
 			{
 				case GameState::MM_MAIN:
 				{
-					std::for_each(mm_main_buttons.begin(), mm_main_buttons.end(), [](auto b) { b->update(); });
+					std::for_each(mm_main_buttons.begin(),  mm_main_buttons.end(),  [](auto b) { b->update(); });
+					std::for_each(mm_main_switches.begin(), mm_main_switches.end(), [](auto s) { s->update(); });
 
 					title_game.draw();
-					std::for_each(mm_main_buttons.begin(), mm_main_buttons.end(), [](auto b) { b->draw(); });
+					std::for_each(mm_main_buttons.begin(),  mm_main_buttons.end(),  [](auto b) { b->draw(); });
+					std::for_each(mm_main_switches.begin(), mm_main_switches.end(), [](auto s) { s->draw(); });
 					break;
 				}
 				case GameState::MM_ABOUT:
@@ -314,7 +324,7 @@ namespace pm
 					time += fElapsedTime;
 					
 					// add score in modern gameplay
-					if (!currLevel->isOldschool && chainCountDown != 0)
+					if (!isOldschool && chainCountDown != 0)
 					{
 						chainCountDown -= fElapsedTime;
 						if (chainCountDown < 0.0f)
@@ -330,7 +340,7 @@ namespace pm
 					cheerCountDown -= fElapsedTime;
 					if (cheerCountDown <= 0.0f)
 					{
-						currCheerString = rand() % (currLevel->isOldschool ? strCheerSon.size() : strCheerDad.size());
+						currCheerString = rand() % (isOldschool ? strCheerSon.size() : strCheerDad.size());
 						cheerCountDown = CHEER_DOWN_TIME;
 					}
 
@@ -351,7 +361,7 @@ namespace pm
 						{
 							playEffect(SoundEffect::PAC);
 							Dot* d = dynamic_cast<Dot*>(it->second.get());
-							if (currLevel->isOldschool)
+							if (isOldschool)
 								score += d->value;
 							else
 							{
@@ -409,7 +419,7 @@ namespace pm
 									break;
 								case Ghost::GhostState::WEAK:
 									ghost->makeEaten();
-									score += currLevel->isOldschool ? iGhostValue : int(pow(2, iChainLength - 1));
+									score += isOldschool ? iGhostValue : int(pow(2, iChainLength - 1));
 									break;
 									//case Ghost::GhostState::EATEN: break;
 								}
@@ -448,7 +458,7 @@ namespace pm
 					timeCountDown -= fElapsedTime;
 					if (timeCountDown <= 0)
 					{
-						if (!currLevel->isOldschool)
+						if (!isOldschool)
 							score += chain;
 						
 						loadNextLevel();
@@ -514,7 +524,7 @@ namespace pm
 
 			// Cheerleading pacman
 			DrawDecal(olc::vi2d(2, 0), currCheerleader);
-			DrawString(tileToScreen(2, 0), currLevel->isOldschool ? strCheerSon[currCheerString] : strCheerDad[currCheerString]);
+			DrawString(tileToScreen(2, 0), isOldschool ? strCheerSon[currCheerString] : strCheerDad[currCheerString]);
 
 			// Info
 			int y = currLevel->height * iTileSize + currLevel->vPos.y;
@@ -522,7 +532,7 @@ namespace pm
 			DrawString({ 0, y + 1 }, "Time:  " + std::to_string((int)time));
 			DrawString({ 0, y + 11 }, "Score: " + std::to_string(score));
 			DrawString({ 0, y + 21 }, "Lives: " + std::to_string(lives), olc::Pixel(255, livesColor, livesColor));
-			if (!currLevel->isOldschool)
+			if (!isOldschool)
 			{
 				int chainColor = std::clamp(255 - int(pow(log2(chain + 1), 2)), 0, 255);
 				DrawString({ 0, y + 31 }, "Chain: " + std::bitset<iChainLength>(chain).to_string(), olc::Pixel(chainColor, 255, chainColor));

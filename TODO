@@ -1,6 +1,6 @@
-mandatory stuff
-- add sound!
-
-additional stuff
+v0.2 todos
+- get rig of the struct "Level"
+- add animation
+- add sound queue
 - check validity on levels' loading 
 - create highscores table

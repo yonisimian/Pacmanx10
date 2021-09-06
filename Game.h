@@ -449,7 +449,7 @@ namespace pm
 					if (GetKey(olc::ESCAPE).bPressed || GetKey(olc::P).bPressed)
 					{
 						olc::SOUND::StopSample(aBG);
-						olc::SOUND::PlaySample(aLevel);
+						olc::SOUND::PlaySample(aLevel, true);
 						nextState = GameState::GAME_PLAY;
 					}
 
@@ -468,7 +468,7 @@ namespace pm
 						
 						loadNextLevel();
 						nextState = GameState::GAME_SET;
-						olc::SOUND::PlaySample(aLevel);
+						olc::SOUND::PlaySample(aLevel, true);
 						break;
 					}
 

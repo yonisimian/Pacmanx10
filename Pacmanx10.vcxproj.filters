@@ -33,9 +33,6 @@
     <Media Include="Assets\Sound\pac_04.wav">
       <Filter>Resource Files\Sound</Filter>
     </Media>
-    <Media Include="Assets\Sound\level_music.mp3">
-      <Filter>Resource Files\Sound</Filter>
-    </Media>
     <Media Include="Assets\Sound\click_01.wav">
       <Filter>Resource Files\Sound</Filter>
     </Media>

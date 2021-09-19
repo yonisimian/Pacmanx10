@@ -115,7 +115,7 @@ namespace pm
 			}
 
 			// debug tile
-			// game.DrawRect(getFixedPos(game.GetMousePos()), { iTileSize, iTileSize }, olc::YELLOW);
+			// game.DrawRect(getFixedPos(game.GetMousePos()), { nTileSize, nTileSize }, olc::YELLOW);
 
 			return true;
 		}

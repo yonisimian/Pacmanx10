@@ -17,18 +17,23 @@ namespace pm
 {
 #pragma region Definitions
 
-	const int iTileSize = 8;
-	const olc::vf2d vTile(iTileSize, iTileSize);
-	const olc::vf2d vHalfTile(iTileSize / 2.0f, iTileSize / 2.0f);
+	static const float constexpr CHEER_DOWN_TIME = 10.0f;
+	static const float constexpr COUNT_DOWN_TIME = 3.0f;
+	static const float constexpr CHAIN_DOWN_TIME = 1.0f;
+	static const int NUM_OF_TUTORIAL_LEVELS = 5;
+	static const int DEFAULT_LEVEL_HEIGHT = 16;
+	static const int DEFAULT_LEVEL_WIDTH = 16;
+	static const int DEFAULT_LIFE = 3;
 
-	const int iPacmanSpeed = 30;
-	const int iGhostSpeed = 21;
-	const int iDotValue = 10;
-	const int iChainLength = 16;
-	const int iGhostValue = 200;
+	const int nTileSize = 8;
+	const olc::vf2d vTile(nTileSize, nTileSize);
+	const olc::vf2d vHalfTile(nTileSize / 2.0f, nTileSize / 2.0f);
 
-	const int DEFAULT_LEVEL_WIDTH = 16;
-	const int DEFAULT_LEVEL_HEIGHT = 16;
+	const int nPacmanSpeed = 30;
+	const int nGhostSpeed = 21;
+	const int nDotValue = 10;
+	const int nChainLength = 16; // if changed, make sure to change "chain"'s type in Game.h too!
+	const int nGhostValue = 200;
 
 	static const char SYMBOL_EMPTY  =  ' ';
 	static const char SYMBOL_PLAYER =  'p';
@@ -66,15 +71,17 @@ namespace pm
 
 		COUNT
 	};
-	enum class SoundEffect {
-		// for effects that have multiple versions
+	enum class SoundKind {
 		CLICK = 0,
 		FART,
 		PAC,
 		YUMMY,
 		GHOST_EAT_ME,
 		GHOST_EATEN,
-		VICTORY
+		VICTORY,
+		LOSE,
+		LEVEL_MUSIC,
+		SCORE_UP
 	};
 	struct LevelData {
 		std::string data;
@@ -97,28 +104,28 @@ namespace pm
 	olc::vi2d tileToScreen(int x, int y)
 	{
 		return olc::vi2d {
-			x * iTileSize,
-			y * iTileSize
+			x * nTileSize,
+			y * nTileSize
 		};
 	};
 	olc::vi2d tileToScreen(const olc::vf2d& pos)
 	{
 		return olc::vi2d{
-			(int)pos.x * iTileSize,
-			(int)pos.y * iTileSize
+			(int)pos.x * nTileSize,
+			(int)pos.y * nTileSize
 		};
 	};
 	olc::vi2d screenToTile(const olc::vf2d& pos)
 	{
 		return olc::vi2d{
-			(int)pos.x / iTileSize,
-			(int)pos.y / iTileSize
+			(int)pos.x / nTileSize,
+			(int)pos.y / nTileSize
 		};
 	};
 	olc::vi2d getFixedPos(const olc::vf2d& pos)
 	{
-		olc::vi2d v = pos / iTileSize;
-		return v * iTileSize;
+		olc::vi2d v = pos / nTileSize;
+		return v * nTileSize;
 	};
 	char kindToChar(const Kind kind)
 	{
@@ -157,11 +164,11 @@ namespace pm
 	{
 		for (int x = 0; x < width; x++)
 			for (int y = 0; y < height; y++)
-				game.DrawRect(tileToScreen(x + pos.x, y + pos.y), { iTileSize, iTileSize }, olc::Pixel(255, 255, 255, 40));
+				game.DrawRect(tileToScreen(x + pos.x, y + pos.y), { nTileSize, nTileSize }, olc::Pixel(255, 255, 255, 40));
 	}
 	bool checkCollision(const olc::vi2d& v1, const olc::vi2d& v2)
 	{
-		return abs(v1.x - v2.x) < iTileSize && abs(v1.y - v2.y) < iTileSize;
+		return abs(v1.x - v2.x) < nTileSize && abs(v1.y - v2.y) < nTileSize;
 	}
 	bool isPointInRect(const olc::vf2d& point, const olc::vf2d& rectPos, const olc::vf2d& rectSize)
 	{
@@ -206,10 +213,10 @@ namespace pm
 			//game.DrawDecal(vInitPos + offset, image);
 
 			// draw walls outlines
-			if (walls & 0b1000) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(iTileSize - 1, 0        ), color);
-			if (walls & 0b0100) game.DrawLine(vInitPos + offset + olc::vi2d(0, iTileSize - 1), vInitPos + offset + olc::vi2d(iTileSize - 1, iTileSize - 1), color);
-			if (walls & 0b0010) game.DrawLine(vInitPos + offset,						   vInitPos + offset + olc::vi2d(0,             iTileSize - 1), color);
-			if (walls & 0b0001) game.DrawLine(vInitPos + offset + olc::vi2d(iTileSize - 1, 0), vInitPos + offset + olc::vi2d(iTileSize - 1, iTileSize - 1), color);
+			if (walls & 0b1000) game.DrawLine(vInitPos + offset,								vInitPos + offset + olc::vi2d(nTileSize - 1, 0        ),	 color);
+			if (walls & 0b0100) game.DrawLine(vInitPos + offset + olc::vi2d(0, nTileSize - 1),	vInitPos + offset + olc::vi2d(nTileSize - 1, nTileSize - 1), color);
+			if (walls & 0b0010) game.DrawLine(vInitPos + offset,								vInitPos + offset + olc::vi2d(0,             nTileSize - 1), color);
+			if (walls & 0b0001) game.DrawLine(vInitPos + offset + olc::vi2d(nTileSize - 1, 0),	vInitPos + offset + olc::vi2d(nTileSize - 1, nTileSize - 1), color);
 		}
 	};
 	struct Dot : public GameObject
@@ -217,35 +224,30 @@ namespace pm
 		int value;
 		Dot(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, olc::Decal* image = nullptr) :
 			GameObject(game, Kind::DOT, vInitPos, image, isOldschool),
-			value(isOldschool ? iDotValue : randomBool(0.6f))
+			value(isOldschool ? nDotValue : randomBool(0.6f))
 		{}
 		virtual void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
 			if (isOldschool)
-				game.FillCircle(vInitPos + offset + olc::vi2d(iTileSize / 2, iTileSize / 2), iTileSize / 8);
+				game.FillCircle(vInitPos + offset + olc::vi2d(nTileSize / 2, nTileSize / 2), nTileSize / 8);
 			else
 				game.DrawString(vInitPos + offset + olc::vi2d(1, 1) , std::to_string(value));
 		}
 	};
 	struct PowerUp : public GameObject
 	{
-		static const int speed = 400;
-		float blue;
-		bool dirUp;
+		float time;
 		PowerUp(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, bool isOldschool = true, olc::Decal * image = nullptr) :
 			GameObject(game, Kind::POWER_UP, vInitPos, image, isOldschool),
-			blue(255),
-			dirUp(false)
+			time(0)
 		{}
 		void update(float fElapsedTime) override
 		{
-			if (blue >= 255) dirUp = false;
-			if (blue <= 0)   dirUp = true;
-			blue += (dirUp ? 1 : -1) * fElapsedTime * speed;
+			time += fElapsedTime;
 		}
 		void draw(const olc::vf2d& offset = { 0.0f, 0.0f }) const override
 		{
-			game.FillCircle(vInitPos + offset + olc::vi2d(iTileSize / 2, iTileSize / 2), iTileSize / 4, olc::Pixel(212, 212, int(blue)));
+			game.FillCircle(vInitPos + offset + olc::vi2d(nTileSize / 2, nTileSize / 2), nTileSize / 4, olc::Pixel(212, 212, int(std::abs(sin(time) * 255.0))));
 		}
 	};
 
@@ -302,7 +304,7 @@ namespace pm
 	protected:
 		void stepForward(float fElapsedTime)
 		{
-			if (currDir != nextDir && (int)vPos.x % iTileSize == 0 && (int)vPos.y % iTileSize == 0)
+			if (currDir != nextDir && (int)vPos.x % nTileSize == 0 && (int)vPos.y % nTileSize == 0)
 				currDir = nextDir;
 			switch (currDir)
 			{
@@ -311,10 +313,10 @@ namespace pm
 			case Dir::LEFT:	 vPos.x -= fElapsedTime * iSpeed; break;
 			case Dir::RIGHT: vPos.x += fElapsedTime * iSpeed; break;
 			}
-			if (vPos.x > iLevelWidth * iTileSize) vPos.x = 0;
-			if (vPos.y > iLevelHeight * iTileSize) vPos.y = 0;
-			if (vPos.x < 0) vPos.x = iLevelWidth * iTileSize;
-			if (vPos.y < 0) vPos.y = iLevelHeight * iTileSize;
+			if (vPos.x > iLevelWidth * nTileSize) vPos.x = 0;
+			if (vPos.y > iLevelHeight * nTileSize) vPos.y = 0;
+			if (vPos.x < 0) vPos.x = iLevelWidth * nTileSize;
+			if (vPos.y < 0) vPos.y = iLevelHeight * nTileSize;
 		}
 		void stepBack()
 		{
@@ -355,7 +357,7 @@ namespace pm
 		int* map;
 	public:
 		Ghost(olc::PixelGameEngine& game, const olc::vi2d& vPos, olc::Decal* image, olc::Pixel color, Kind kind, const int levelWidth, const int levelHeight, BOARD_MAP& board, bool isOldschool = true, olc::vf2d* vTargetPos = nullptr, const Dir initialDir = Dir::RIGHT) :
-			MoveableObject(game, kind, vPos, image, isOldschool, iGhostSpeed, levelWidth, levelHeight, initialDir),
+			MoveableObject(game, kind, vPos, image, isOldschool, nGhostSpeed, levelWidth, levelHeight, initialDir),
 			color(color),
 			currState(GhostState::STRONG),
 			fWeakTime(WEAK_TIME),
@@ -384,7 +386,7 @@ namespace pm
 		{
 			switch (currState)
 			{
-			//case GhostState::STRONG: game.DrawRect(vPos + offset, { iTileSize, iTileSize }, color);			break;
+			//case GhostState::STRONG: game.DrawRect(vPos + offset, { nTileSize, nTileSize }, color);			break;
 			case GhostState::STRONG: game.DrawDecal(vPos + offset, image, { 1.0f, 1.0f }, color);			break;
 			case GhostState::WEAK:	 game.DrawDecal(vPos + offset, image, { 1.0f, 1.0f }, olc::DARK_BLUE); break;
 			case GhostState::EATEN:  game.DrawDecal(vPos + offset, image, { 1.0f, 1.0f }, olc::Pixel(0, 0, 128, 50)); break;
@@ -397,7 +399,7 @@ namespace pm
 		}
 		void makeEaten()
 		{
-			iSpeed = iGhostSpeed * 1.5f;
+			iSpeed = nGhostSpeed * 1.5f;
 			vCurrTarget = &vInitPos;
 			currState = GhostState::EATEN;
 		}
@@ -414,7 +416,7 @@ namespace pm
 			fWeakTime -= fElapsedTime;
 			if (fWeakTime <= 0)
 			{
-				iSpeed = iGhostSpeed;
+				iSpeed = nGhostSpeed;
 				vCurrTarget = vTargetPos;
 				currState = GhostState::STRONG;
 			}
@@ -679,7 +681,7 @@ namespace pm
 		bool wasRight;
 	public:
 		Pacman(olc::PixelGameEngine& game, const olc::vi2d& vInitPos, const int iLevelWidth, const int iLevelHeight, bool isOldschool = true, olc::Decal * image = nullptr) :
-			MoveableObject(game, Kind::PLAYER, vInitPos, image, isOldschool, int(iPacmanSpeed), iLevelWidth, iLevelHeight),
+			MoveableObject(game, Kind::PLAYER, vInitPos, image, isOldschool, int(nPacmanSpeed), iLevelWidth, iLevelHeight),
 			wasRight(true)
 		{}
 		void getInput(olc::PixelGameEngine& game)
@@ -960,7 +962,7 @@ namespace pm
 			game.FillRect(vPos, vSize, olc::GREY);
 			game.DrawRect(vPos, vSize, olc::Pixel(200, 100, 0));
 
-			game.DrawString(olc::vi2d(vPos.x + iTileSize / 2 - 1, vPos.y + vSize.y / 2 - 3), iText == nullptr ? text : std::to_string(*iText), olc::BLACK);
+			game.DrawString(olc::vi2d(vPos.x + nTileSize / 2 - 1, vPos.y + vSize.y / 2 - 3), iText == nullptr ? text : std::to_string(*iText), olc::BLACK);
 			if (isClickable && isPointInRect(game.GetMousePos(), vPos, vSize))
 				game.FillRectDecal(vPos, vSize, olc::Pixel(255, 170, 0, 80));
 		}
@@ -998,8 +1000,8 @@ namespace pm
 			// switch
 			game.FillRect(vPos, vSize, isOn ? olc::GREEN : olc::RED);
 			game.DrawRect(vPos, vSize, olc::Pixel(200, 100, 0));
-			game.FillRect(vPos + olc::vi2d(isOn ? iTileSize * 1.5f : 0, 0), olc::vi2d(iTileSize, vSize.y), olc::WHITE);
-			game.DrawRect(vPos + olc::vi2d(isOn ? iTileSize * 1.5f : 0, 0), olc::vi2d(iTileSize, vSize.y), olc::DARK_GREY);
+			game.FillRect(vPos + olc::vi2d(isOn ? nTileSize * 1.5f : 0, 0), olc::vi2d(nTileSize, vSize.y), olc::WHITE);
+			game.DrawRect(vPos + olc::vi2d(isOn ? nTileSize * 1.5f : 0, 0), olc::vi2d(nTileSize, vSize.y), olc::DARK_GREY);
 
 			// text
 			btn.draw();
